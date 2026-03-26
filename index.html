@@ -36,6 +36,13 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 .d-status.ok{color:var(--green)}.d-status.err{color:#DC3C2A}
 .kb-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:11px}
 .kb-s.ok{color:var(--green)}.kb-s.miss{color:var(--muted)}
+.toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:11px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#1a2a35;border-radius:20px;transition:.3s;cursor:pointer}
+.toggle-slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:var(--muted);border-radius:50%;transition:.3s}
+.toggle input:checked+.toggle-slider{background:rgba(42,168,220,0.3)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(16px);background:var(--blue)}
 .messages{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:14px;position:relative;z-index:1;-webkit-overflow-scrolling:touch}
 .messages::-webkit-scrollbar{width:2px}
 .messages::-webkit-scrollbar-thumb{background:var(--border)}
@@ -90,6 +97,17 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
     <div class="d-status" id="kbStatus"></div>
   </div>
   <div class="d-section">
+    <div class="d-label">Réponse vocale</div>
+    <div class="toggle-wrap">
+      <span>🔊 Lire les réponses à voix haute</span>
+      <label class="toggle">
+        <input type="checkbox" id="voiceReplyToggle" onchange="saveVoicePref(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div style="font-size:10px;color:var(--muted);padding:0 4px">Désactivé par défaut — active pour mode boutique</div>
+  </div>
+  <div class="d-section">
     <button class="d-btn d-btn-s" onclick="clearHistory()">🗑 Vider conversation</button>
   </div>
   <button class="d-btn d-btn-s" onclick="closeDrawer()">✕ Fermer</button>
@@ -114,8 +132,8 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
       <div class="suggestion" onclick="quickSend('iPhone 13 dispo ?')">iPhone 13 dispo ?</div>
       <div class="suggestion" onclick="quickSend('Prix écran iPhone 12')">Écran iPhone 12</div>
       <div class="suggestion" onclick="quickSend('Batterie Samsung A54 ?')">Batterie A54</div>
-      <div class="suggestion" onclick="quickSend('Stock Casa ?')">Stock Casa</div>
-      <div class="suggestion" onclick="quickSend('Compare iPhone 11 et 12')">iPhone 11 vs 12</div>
+      <div class="suggestion" onclick="quickSend('J\'ai un budget 3000 MAD')">Budget 3000 MAD</div>
+      <div class="suggestion" onclick="quickSend('Compare iPhone 13 et 14')">iPhone 13 vs 14</div>
     </div>
     <div class="input-row">
       <textarea class="text-input" id="textInput" placeholder="Pose ta question ici..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -133,8 +151,22 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 let apiKey=localStorage.getItem('cm_api_key')||'';
 let isLoading=false,recognition=null,isListening=false;
 let history=[],catalogue=null,reparations=null;
-window.onload=async()=>{if(apiKey)document.getElementById('apiKeyInput').value=apiKey;await loadKnowledge();};
-function setStatus(t,type){const dot=document.getElementById('statusDot');const lbl=document.getElementById('statusText');dot.className='status-dot';if(type==='loading')dot.classList.add('loading');if(type==='error')dot.classList.add('error');lbl.textContent=t;}
+
+window.onload=async()=>{
+  if(apiKey)document.getElementById('apiKeyInput').value=apiKey;
+  loadVoicePref();
+  await loadKnowledge();
+};
+
+function setStatus(t,type){
+  const dot=document.getElementById('statusDot');
+  const lbl=document.getElementById('statusText');
+  dot.className='status-dot';
+  if(type==='loading')dot.classList.add('loading');
+  if(type==='error')dot.classList.add('error');
+  lbl.textContent=t;
+}
+
 async function loadKnowledge(){
   setStatus('Chargement...','loading');let ok=0;
   try{const r=await fetch('catalogue.json');if(!r.ok)throw 0;catalogue=await r.json();document.getElementById('s-cat').textContent='✅';document.getElementById('s-cat').className='kb-s ok';ok++;}
@@ -145,64 +177,163 @@ async function loadKnowledge(){
   if(ok===2){setStatus('Prêt','ok');ks.className='d-status ok';ks.textContent='✅ Fichiers chargés';}
   else{setStatus('Prêt','ok');ks.className='d-status err';ks.textContent=`⚠️ ${ok}/2 fichiers chargés`;}
 }
+
 function reloadKnowledge(){catalogue=null;reparations=null;loadKnowledge();}
+
 function buildPrompt(){
   let cat='',rep='';
-  if(catalogue){const a=catalogue.appareils.filter(x=>x.dispo&&x.prix).map(x=>{const p=x.prix_promo&&x.prix_promo<x.prix?` (promo:${x.prix_promo})`:'';return `${x.nom}|${x.prix}${p} MAD|${x.store}|stock:${x.stock}`;}).join('\n');cat=`APPAREILS EN STOCK:\n${a}`;}
-  else{cat='STOCK: non chargé';}
-  if(reparations){const lines=[];for(const[k,v]of Object.entries(reparations.reparations)){if(v.escalade)lines.push(`${v.label}: diagnostic spécialisé`);else if(v.prix_min!=null)lines.push(`${v.label}: ${v.prix_min}–${v.prix_max} MAD`);else if(v.marques)for(const[m,d]of Object.entries(v.marques)){const arr=Array.isArray(d)?d:(d.modeles||[]);arr.forEach(x=>{if(!x.escalade)lines.push(`${v.label} ${m} ${x.groupe}: ${x.prix_min}–${x.prix_max} MAD`);});}}rep=`RÉPARATIONS:\n${lines.join('\n')}`;}
-  else{rep='RÉPARATIONS: non chargé';}
-  return `Tu es l'assistant interne de Corner Mobile, boutique smartphones Rabat et Casablanca.
-Tu réponds aux VENDEURS en boutique face à un client — réponses ultra courtes, max 3 lignes.
-Détecte la langue (Français/Darija/Arabe) et réponds dans la même langue.
+
+  if(catalogue){
+    const a=catalogue.appareils.filter(x=>x.dispo&&x.prix).map(x=>{
+      const promo=x.prix_promo&&x.prix_promo<x.prix?` | PROMO:${x.prix_promo} MAD`:'';
+      const urgence=x.stock===1?' | ⚠️ DERNIER EN STOCK':'';
+      const boutique=x.store==='Rabat'?'Aït Baha':x.store==='Casablanca'?'Oued Dahab':x.store;
+      return `${x.nom} | ${x.prix} MAD${promo} | ${boutique}${urgence} | stock:${x.stock}`;
+    }).join('\n');
+    cat=`STOCK DISPONIBLE (UNIQUEMENT CES PRODUITS — ne jamais inventer):\n${a}`;
+  } else {
+    cat='STOCK: fichier non chargé — réponds uniquement "Je vérifie le stock, une seconde ⏳"';
+  }
+
+  if(reparations){
+    const lines=[];
+    for(const[k,v]of Object.entries(reparations.reparations)){
+      if(v.escalade)lines.push(`${v.label}: diagnostic spécialisé en boutique`);
+      else if(v.prix_min!=null)lines.push(`${v.label}: ${v.prix_min}–${v.prix_max} MAD`);
+      else if(v.marques)for(const[m,d]of Object.entries(v.marques)){
+        const arr=Array.isArray(d)?d:(d.modeles||[]);
+        arr.forEach(x=>{if(!x.escalade)lines.push(`${v.label} ${m} ${x.groupe}: ${x.prix_min}–${x.prix_max} MAD`);});
+      }
+    }
+    rep=`RÉPARATIONS (fourchettes — prix confirmé après diagnostic gratuit):\n${lines.join('\n')}`;
+  }
+
+  return `Tu es Hamid, l'assistant commercial de Corner Mobile — deux boutiques à Rabat :
+- Aït Baha (Centre Commercial Aït Baha)
+- Oued Dahab (Centre Commercial Oued Dahab)
+
 ${cat}
+
 ${rep}
-LIVRAISON: Rabat et Casablanca uniquement. DIAGNOSTIC: Gratuit.
-RÈGLES: Max 3 lignes. Direct.
-Stock dispo → "✅ Oui — [nom] | [prix] MAD | [store] | stock:[n]"
-Stock indispo → "❌ Pas en stock"
-Réparation → fourchette + "après diagnostic"
-Hors catalogue → "À vérifier avec l'équipe"`;
+
+RÈGLES ABSOLUES:
+1. Tu ne parles QUE des produits dans le stock ci-dessus. Zéro invention.
+2. Si produit non disponible → propose immédiatement 2-3 alternatives cohérentes du stock (même gamme, prix proche).
+3. Réponses MAX 3 lignes — tu parles à un vendeur face à un client, chaque seconde compte.
+4. Tu es un vrai commercial — ton objectif est de VENDRE. Crée l'envie, mentionne les promos, signale le dernier en stock.
+5. Détecte la langue (Français / Darija / Arabe) et réponds dans la même langue naturellement.
+6. Pour les réparations → donne la fourchette + "diagnostic gratuit en boutique".
+7. Ton ton : direct, chaleureux, efficace. Jamais corporate.
+
+EXEMPLES DE BONNES RÉPONSES:
+Q: "iPhone 13 dispo ?" → "✅ Oui — iPhone 13 128Go | 4200 MAD | Aït Baha | stock:1 ⚠️ Dernier dispo !"
+Q: "wach kayn Samsung bon marché ?" → "✅ Ih — Samsung A34 | 1800 MAD | Aït Baha, ou Redmi Note 12 | 1600 MAD — les deux neufs 🔥"
+Q: "iPhone 11 kayn ?" (pas en stock) → "❌ iPhone 11 machi kayn — walakin 3andna iPhone 12 b 2800 MAD, beaucoup mieux pour presque le même prix 👌"
+Q: "budget 3000 MAD" → liste les 3 meilleures options dans ce budget depuis le stock`;
 }
-function saveApiKey(){const v=document.getElementById('apiKeyInput').value.trim();const s=document.getElementById('keyStatus');if(v.startsWith('sk-ant')){apiKey=v;localStorage.setItem('cm_api_key',v);s.className='d-status ok';s.textContent='✅ Sauvegardée';setStatus('Prêt','ok');}else{s.className='d-status err';s.textContent='❌ Format invalide';}}
+
+function saveApiKey(){
+  const v=document.getElementById('apiKeyInput').value.trim();
+  const s=document.getElementById('keyStatus');
+  if(v.startsWith('sk-ant')){apiKey=v;localStorage.setItem('cm_api_key',v);s.className='d-status ok';s.textContent='✅ Sauvegardée';setStatus('Prêt','ok');}
+  else{s.className='d-status err';s.textContent='❌ Format invalide';}
+}
+
+function saveVoicePref(v){localStorage.setItem('cm_voice',v);}
+function loadVoicePref(){
+  const v=localStorage.getItem('cm_voice')==='true';
+  document.getElementById('voiceReplyToggle').checked=v;
+}
+function speakReply(text){
+  if(localStorage.getItem('cm_voice')!=='true')return;
+  window.speechSynthesis.cancel();
+  const clean=text.replace(/<[^>]*>/g,'').replace(/[✅❌🔧📱⚠️🔥👌]/g,'').trim();
+  const u=new SpeechSynthesisUtterance(clean);
+  u.lang='fr-FR';u.rate=1.05;u.pitch=1;
+  window.speechSynthesis.speak(u);
+}
+
 function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('overlay').classList.add('open');}
 function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('overlay').classList.remove('open');}
 function clearHistory(){history=[];document.getElementById('messages').innerHTML='<div class="welcome"><span class="welcome-icon">📱</span><h2>Assistant Corner Mobile</h2><p>Conversation réinitialisée.</p></div>';closeDrawer();}
+
 function addMsg(role,text){
-  const c=document.getElementById('messages');const w=c.querySelector('.welcome');if(w)w.remove();
+  const c=document.getElementById('messages');
+  const w=c.querySelector('.welcome');if(w)w.remove();
   const m=document.createElement('div');m.className=`msg ${role}`;
   const lbl=document.createElement('div');lbl.className='msg-label';lbl.textContent=role==='user'?'Vendeur':'Assistant';
   const b=document.createElement('div');b.className='bubble';
-  b.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/(\d{3,5}\s*MAD)/g,'<strong style="color:var(--blue)">$1</strong>').replace(/✅/g,'<span style="color:var(--green)">✅</span>').replace(/❌/g,'<span style="color:#DC3C2A">❌</span>').replace(/\n/g,'<br>');
+  b.innerHTML=text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/(\d{3,5}\s*MAD)/g,'<strong style="color:var(--blue)">$1</strong>')
+    .replace(/✅/g,'<span style="color:var(--green)">✅</span>')
+    .replace(/❌/g,'<span style="color:#DC3C2A">❌</span>')
+    .replace(/⚠️/g,'<span style="color:#f59e0b">⚠️</span>')
+    .replace(/\n/g,'<br>');
   m.appendChild(lbl);m.appendChild(b);c.appendChild(m);c.scrollTop=c.scrollHeight;
 }
-function showTyping(){const c=document.getElementById('messages');const t=document.createElement('div');t.className='msg ai';t.id='typing';t.innerHTML='<div class="msg-label">Assistant</div><div class="typing"><span></span><span></span><span></span></div>';c.appendChild(t);c.scrollTop=c.scrollHeight;}
+
+function showTyping(){
+  const c=document.getElementById('messages');
+  const t=document.createElement('div');t.className='msg ai';t.id='typing';
+  t.innerHTML='<div class="msg-label">Assistant</div><div class="typing"><span></span><span></span><span></span></div>';
+  c.appendChild(t);c.scrollTop=c.scrollHeight;
+}
 function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+
 async function sendMessage(text){
-  const input=document.getElementById('textInput');const msg=text||input.value.trim();
-  if(!msg||isLoading)return;if(!apiKey){openDrawer();return;}
-  input.value='';autoResize(input);isLoading=true;document.getElementById('sendBtn').disabled=true;setStatus('...','loading');
-  addMsg('user',msg);history.push({role:'user',content:msg});showTyping();
+  const input=document.getElementById('textInput');
+  const msg=text||input.value.trim();
+  if(!msg||isLoading)return;
+  if(!apiKey){openDrawer();return;}
+  input.value='';autoResize(input);
+  isLoading=true;document.getElementById('sendBtn').disabled=true;
+  setStatus('...','loading');
+  addMsg('user',msg);
+  history.push({role:'user',content:msg});
+  showTyping();
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,system:buildPrompt(),messages:history})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,system:buildPrompt(),messages:history})
+    });
     const data=await res.json();removeTyping();
     if(data.error){addMsg('ai','❌ '+data.error.message);setStatus('Erreur','error');}
-    else{const reply=data.content[0].text;history.push({role:'assistant',content:reply});if(history.length>20)history=history.slice(-16);addMsg('ai',reply);setStatus('Prêt','ok');}
+    else{
+      const reply=data.content[0].text;
+      history.push({role:'assistant',content:reply});
+      if(history.length>20)history=history.slice(-16);
+      addMsg('ai',reply);
+      speakReply(reply);
+      setStatus('Prêt','ok');
+    }
   }catch(e){removeTyping();addMsg('ai','❌ Connexion impossible — vérifie ta clé ⚙️');setStatus('Erreur','error');}
   isLoading=false;document.getElementById('sendBtn').disabled=false;
 }
+
 function quickSend(t){document.getElementById('textInput').value=t;sendMessage();}
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
 function toggleVoice(){isListening?stopVoice():startVoice();}
 function startVoice(){
-  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){document.getElementById('voiceStatus').textContent='⚠️ Vocal non supporté';return;}
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new SR();recognition.lang='fr-FR';recognition.interimResults=true;
+  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){
+    document.getElementById('voiceStatus').textContent='⚠️ Vocal non supporté';return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();recognition.lang='fr-FR';recognition.interimResults=true;
   recognition.onstart=()=>{isListening=true;document.getElementById('voiceBtn').classList.add('listening');document.getElementById('voiceStatus').textContent="🎙️ J'écoute...";document.getElementById('voiceStatus').classList.add('active');};
   recognition.onresult=(e)=>{const t=Array.from(e.results).map(r=>r[0].transcript).join('');document.getElementById('textInput').value=t;if(e.results[0].isFinal){stopVoice();sendMessage();}};
-  recognition.onerror=()=>stopVoice();recognition.onend=()=>stopVoice();recognition.start();
+  recognition.onerror=()=>stopVoice();recognition.onend=()=>stopVoice();
+  recognition.start();
 }
-function stopVoice(){isListening=false;if(recognition)recognition.stop();document.getElementById('voiceBtn').classList.remove('listening');document.getElementById('voiceStatus').textContent='';document.getElementById('voiceStatus').classList.remove('active');}
+function stopVoice(){
+  isListening=false;if(recognition)recognition.stop();
+  document.getElementById('voiceBtn').classList.remove('listening');
+  document.getElementById('voiceStatus').textContent='';
+  document.getElementById('voiceStatus').classList.remove('active');
+}
 </script>
 </body>
 </html>
