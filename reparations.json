@@ -1,0 +1,246 @@
+{
+  "meta": {
+    "version": "1.0",
+    "devise": "MAD",
+    "note_globale": "Tous les prix sont des fourchettes indicatives. Confirmation obligatoire après diagnostic technicien.",
+    "diagnostic": {
+      "prix": 0,
+      "label": "Gratuit en boutique"
+    }
+  },
+  "reparations": {
+    "ecran": {
+      "label": "Remplacement Écran",
+      "emoji": "📱",
+      "marques": {
+        "iPhone": {
+          "modeles": [
+            {
+              "groupe": "iPhone SE / 6 / 6S",
+              "type_dalle": "LCD",
+              "prix_min": 200,
+              "prix_max": 280,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "iPhone 7 / 8",
+              "type_dalle": "LCD",
+              "prix_min": 280,
+              "prix_max": 350,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "iPhone X / XS / XR",
+              "type_dalle": "OLED",
+              "prix_min": 380,
+              "prix_max": 500,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "iPhone 11",
+              "type_dalle": "LCD",
+              "prix_min": 400,
+              "prix_max": 550,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "iPhone 12 / 12 Mini",
+              "type_dalle": "OLED",
+              "prix_min": 550,
+              "prix_max": 700,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "iPhone 12 Pro / 12 Pro Max",
+              "type_dalle": "OLED",
+              "prix_min": 650,
+              "prix_max": 800,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "iPhone 13 / 13 Mini",
+              "type_dalle": "OLED",
+              "prix_min": 600,
+              "prix_max": 750,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "iPhone 13 Pro / 13 Pro Max",
+              "type_dalle": "OLED",
+              "prix_min": 700,
+              "prix_max": 900,
+              "delai_heures": "3-5h"
+            },
+            {
+              "groupe": "iPhone 14 / 14 Plus",
+              "type_dalle": "OLED",
+              "prix_min": 750,
+              "prix_max": 950,
+              "delai_heures": "3-5h"
+            },
+            {
+              "groupe": "iPhone 14 Pro / 14 Pro Max",
+              "type_dalle": "OLED ProMotion",
+              "prix_min": 900,
+              "prix_max": 1100,
+              "delai_heures": "3-5h"
+            },
+            {
+              "groupe": "iPhone 15 / 15 Plus",
+              "type_dalle": "OLED",
+              "prix_min": 800,
+              "prix_max": 1000,
+              "delai_heures": "3-5h"
+            }
+          ]
+        },
+        "Samsung": {
+          "modeles": [
+            {
+              "groupe": "Galaxy A14 / A24 / A34",
+              "type_dalle": "LCD/AMOLED",
+              "prix_min": 280,
+              "prix_max": 420,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "Galaxy A54 / A73",
+              "type_dalle": "AMOLED",
+              "prix_min": 400,
+              "prix_max": 550,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "Galaxy S22 / S23",
+              "type_dalle": "Dynamic AMOLED",
+              "prix_min": 550,
+              "prix_max": 750,
+              "delai_heures": "3-5h"
+            },
+            {
+              "groupe": "Galaxy S23+ / S23 Ultra",
+              "type_dalle": "Dynamic AMOLED",
+              "prix_min": 700,
+              "prix_max": 950,
+              "delai_heures": "3-5h"
+            }
+          ]
+        },
+        "Xiaomi": {
+          "modeles": [
+            {
+              "groupe": "Redmi Note 11 / 12",
+              "type_dalle": "AMOLED",
+              "prix_min": 250,
+              "prix_max": 380,
+              "delai_heures": "2-4h"
+            },
+            {
+              "groupe": "Redmi Note 12 Pro",
+              "type_dalle": "AMOLED",
+              "prix_min": 320,
+              "prix_max": 450,
+              "delai_heures": "2-4h"
+            }
+          ]
+        }
+      }
+    },
+    "batterie": {
+      "label": "Remplacement Batterie",
+      "emoji": "🔋",
+      "marques": {
+        "iPhone": {
+          "modeles": [
+            { "groupe": "iPhone SE / 6 / 6S / 7", "prix_min": 150, "prix_max": 200, "delai_heures": "1-2h" },
+            { "groupe": "iPhone 8 / X / XS / XR", "prix_min": 180, "prix_max": 250, "delai_heures": "1-2h" },
+            { "groupe": "iPhone 11", "prix_min": 200, "prix_max": 270, "delai_heures": "1-2h" },
+            { "groupe": "iPhone 12 / 12 Mini", "prix_min": 250, "prix_max": 320, "delai_heures": "1-2h" },
+            { "groupe": "iPhone 13 / 13 Mini", "prix_min": 270, "prix_max": 340, "delai_heures": "1-2h" },
+            { "groupe": "iPhone 14 / 15", "prix_min": 300, "prix_max": 380, "delai_heures": "1-2h" }
+          ]
+        },
+        "Samsung": {
+          "modeles": [
+            { "groupe": "Galaxy A-series (A14–A54)", "prix_min": 150, "prix_max": 250, "delai_heures": "1-2h" },
+            { "groupe": "Galaxy S22 / S23", "prix_min": 280, "prix_max": 400, "delai_heures": "1-2h" }
+          ]
+        },
+        "Xiaomi": {
+          "modeles": [
+            { "groupe": "Redmi Note série", "prix_min": 130, "prix_max": 220, "delai_heures": "1-2h" }
+          ]
+        }
+      }
+    },
+    "connecteur_charge": {
+      "label": "Connecteur de Charge",
+      "emoji": "🔌",
+      "marques": {
+        "iPhone": [
+          { "groupe": "Lightning (SE–13)", "prix_min": 150, "prix_max": 250, "delai_heures": "1-3h" },
+          { "groupe": "USB-C (14–15)", "prix_min": 200, "prix_max": 300, "delai_heures": "1-3h" }
+        ],
+        "Samsung": [
+          { "groupe": "Tous modèles USB-C", "prix_min": 150, "prix_max": 280, "delai_heures": "1-3h" }
+        ],
+        "Xiaomi": [
+          { "groupe": "Tous modèles USB-C", "prix_min": 130, "prix_max": 250, "delai_heures": "1-3h" }
+        ]
+      }
+    },
+    "haut_parleur": {
+      "label": "Haut-parleur / Écouteur interne",
+      "emoji": "🔊",
+      "prix_min": 150,
+      "prix_max": 280,
+      "delai_heures": "1-2h",
+      "note": "Même fourchette toutes marques"
+    },
+    "micro": {
+      "label": "Microphone",
+      "emoji": "🎙️",
+      "prix_min": 120,
+      "prix_max": 220,
+      "delai_heures": "1-2h",
+      "note": "Même fourchette toutes marques"
+    },
+    "camera": {
+      "label": "Caméra",
+      "emoji": "📷",
+      "marques": {
+        "iPhone": [
+          { "groupe": "Caméra arrière simple (SE–11)", "prix_min": 300, "prix_max": 500, "delai_heures": "2-3h" },
+          { "groupe": "Caméra arrière multi (12–15)", "prix_min": 450, "prix_max": 700, "delai_heures": "2-4h" },
+          { "groupe": "Caméra frontale (Face ID)", "prix_min": 0, "prix_max": 0, "escalade": true, "note": "Technicien spécialisé — devis sur place" }
+        ],
+        "Samsung": [
+          { "groupe": "Caméra arrière A-series", "prix_min": 280, "prix_max": 450, "delai_heures": "2-3h" },
+          { "groupe": "Caméra arrière S-series", "prix_min": 400, "prix_max": 650, "delai_heures": "2-4h" }
+        ]
+      }
+    },
+    "vitre_arriere": {
+      "label": "Vitre Arrière",
+      "emoji": "🪟",
+      "marques": {
+        "iPhone": [
+          { "groupe": "iPhone 8 / SE2", "prix_min": 200, "prix_max": 300, "delai_heures": "2-3h" },
+          { "groupe": "iPhone 11–15", "prix_min": 350, "prix_max": 600, "delai_heures": "2-4h", "note": "Chassis souvent solidaire" }
+        ]
+      }
+    },
+    "face_id_touch_id": {
+      "label": "Face ID / Touch ID",
+      "emoji": "🔐",
+      "escalade": true,
+      "note": "Technicien spécialisé uniquement — ne pas donner de prix. Dire : 'Diagnostic en boutique obligatoire.'"
+    },
+    "water_damage": {
+      "label": "Dégât des eaux",
+      "emoji": "💧",
+      "escalade": true,
+      "note": "Nettoyage carte mère + diagnostic. Devis uniquement après ouverture. Dire : 'On ouvre et on te dit ce qu'on peut faire.'"
+    }
+  }
+}
