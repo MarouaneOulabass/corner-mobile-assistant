@@ -247,9 +247,23 @@ function loadVoicePref(){
 function speakReply(text){
   if(localStorage.getItem('cm_voice')!=='true')return;
   window.speechSynthesis.cancel();
-  const clean=text.replace(/<[^>]*>/g,'').replace(/[✅❌🔧📱⚠️🔥👌]/g,'').trim();
+  const clean=text
+    .replace(/<[^>]*>/g,'')
+    .replace(/\*\*(.*?)\*\*/g,'$1')
+    .replace(/\*(.*?)\*/g,'$1')
+    .replace(/[✅❌🔧📱⚠️🔥👌]/g,'')
+    .replace(/\|/g,' — ')
+    .replace(/stock:\d+/g,'')
+    .replace(/PROMO:/g,'en promo à')
+    .replace(/\s+/g,' ')
+    .trim();
   const u=new SpeechSynthesisUtterance(clean);
-  u.lang='fr-FR';u.rate=1.05;u.pitch=1;
+  const voices=window.speechSynthesis.getVoices();
+  const preferred=voices.find(v=>v.name.includes('Amélie')||v.name.includes('Thomas')||v.name.includes('French')||v.lang==='fr-FR');
+  if(preferred)u.voice=preferred;
+  u.lang='fr-FR';
+  u.rate=1.0;
+  u.pitch=1.1;
   window.speechSynthesis.speak(u);
 }
 
