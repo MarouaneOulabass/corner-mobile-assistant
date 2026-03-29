@@ -1,16 +1,10 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "entries": [
-    {"q": "horaires", "patterns": ["heure", "horaire", "ouvert", "ferme", "waqtach", "imta", "open", "close"], "a": "Nous sommes ouverts du Lundi au Samedi de 9h a 20h ! Venez quand vous voulez, on est la pour vous."},
-    {"q": "adresse", "patterns": ["adresse", "fin", "winfin", "localisation", "ou", "emplacement", "map", "lieu"], "a": "On a 2 boutiques a Rabat :\nM1 : Centre Commercial Ait Baha\nM2 : Centre Commercial Oued Dahab (9isaria)\nOn vous attend !"},
-    {"q": "whatsapp", "patterns": ["whatsapp", "telephone", "numero", "appeler", "contact", "tel"], "a": "Vous pouvez nous joindre sur WhatsApp au +212 XXX XXX XXX. On repond vite !"},
-    {"q": "garantie", "patterns": ["garantie", "garanti", "daman", "retour", "warranty"], "a": "Tous nos telephones sont garantis ! Garantie 6 mois sur les appareils d'occasion et garantie constructeur sur le neuf."},
-    {"q": "paiement", "patterns": ["paiement", "payer", "credit", "facilite", "tqsit", "cash", "carte", "visa"], "a": "On accepte le cash et les cartes bancaires. Pour les gros montants, on peut discuter de facilites de paiement en boutique !"},
-    {"q": "livraison", "patterns": ["livraison", "livrer", "domicile", "twsil", "delivery", "توصيل"], "a": "Oui on livre a domicile sur Rabat ! Livraison gratuite dans Rabat, 50 MAD pour Sale/Temara. Contactez-nous sur WhatsApp."},
-    {"q": "reparation", "patterns": ["repar", "casser", "ecran casse", "tslah", "broken", "panne", "reparation"], "a": "Oui on repare ! Ecrans, batteries, connecteurs... Passez en boutique pour un diagnostic gratuit, ou on peut se deplacer chez vous !"},
-    {"q": "occasion", "patterns": ["occasion", "used", "mst3ml", "reconditionn", "d'occasion", "مستعمل"], "a": "On a un super choix de telephones d'occasion garantis ! iPhone, Samsung, tout est teste et verifie. Passez voir notre stock !"},
-    {"q": "domicile", "patterns": ["domicile", "maison", "chez moi", "deplacement", "dar", "الدار"], "a": "Oui, on se deplace chez vous a Rabat, Sale et Temara ! Deplacement gratuit dans Rabat. Prenez rendez-vous sur WhatsApp."},
-    {"q": "samsung", "patterns": ["samsung", "galaxy", "سامسونغ"], "a": "On a plein de Samsung en stock ! Galaxy S25, A-series... Dites-moi votre budget et je vous trouve le meilleur choix."},
-    {"q": "iphone", "patterns": ["iphone", "apple", "ايفون", "آيفون"], "a": "Fan d'iPhone ? On a du stock du iPhone 12 au iPhone 17 Pro Max ! Neuf et occasion. Quel modele vous interesse ?"}
+    {"q": "horaires", "patterns": ["heure", "horaire", "ouvert", "ferme", "waqtach", "imta", "open", "close"], "a": "Nous sommes ouverts du Lundi au Samedi de 9h a 20h ! 🕐 Venez quand vous voulez, on est la pour vous. WhatsApp: +212 XXX XXX XXX"},
+    {"q": "adresse", "patterns": ["adresse", "fin", "winfin", "localisation", "emplacement", "map", "lieu"], "a": "On a 2 boutiques a Rabat :\n📍 M1 : Centre Commercial Ait Baha\n📍 M2 : Centre Commercial Oued Dahab (9isaria)\nOn vous attend ! 😊"},
+    {"q": "whatsapp", "patterns": ["whatsapp", "numero", "appeler", "contact"], "a": "Vous pouvez nous joindre sur WhatsApp au +212 XXX XXX XXX 📱 On repond vite !"},
+    {"q": "garantie", "patterns": ["garantie", "garanti", "daman", "warranty"], "a": "Tous nos telephones sont garantis ! ✅ Garantie 6 mois sur les appareils d'occasion et garantie constructeur sur le neuf."},
+    {"q": "paiement", "patterns": ["paiement", "payer", "credit", "facilite", "tqsit", "cash", "carte", "visa"], "a": "On accepte le cash et les cartes bancaires 💳 Pour les gros montants, on peut discuter de facilites de paiement en boutique !"}
   ]
 }
