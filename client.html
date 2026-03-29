@@ -357,7 +357,7 @@ async function loadPublicCatalogue() {
     do {
       let url = 'https://api.loyverse.com/v1.0/items?limit=250';
       if (cursor) url += '&cursor=' + cursor;
-      const res = await fetch(CONFIG.PROXY_URL + encodeURIComponent(url), {
+      const res = await fetch(url, {
         headers: { 'Authorization': 'Bearer ' + CONFIG.LOYVERSE_TOKEN }
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -802,7 +802,7 @@ async function sendMessage(text) {
   showTyping();
 
   try {
-    const claudeUrl = CONFIG.PROXY_URL + encodeURIComponent('https://api.anthropic.com/v1/messages');
+    const claudeUrl = 'https://api.anthropic.com/v1/messages';
     const res = await fetch(claudeUrl, {
       method: 'POST',
       headers: {

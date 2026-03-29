@@ -310,7 +310,7 @@ async function loadLoyverseStock() {
       let url = 'https://api.loyverse.com/v1.0/items?limit=250';
       if (cursor) url += '&cursor=' + cursor;
 
-      const res = await fetch(CONFIG.PROXY_URL + encodeURIComponent(url), {
+      const res = await fetch(url, {
         headers: { 'Authorization': 'Bearer ' + CONFIG.LOYVERSE_TOKEN }
       });
 
@@ -552,9 +552,9 @@ async function logToSheet(userMsg, aiReply) {
   if (!CONFIG.SHEET_ID) return;
   try {
     const timestamp = new Date().toISOString();
-    const url = CONFIG.PROXY_URL + encodeURIComponent(
+    const url = 
       'https://sheets.googleapis.com/v4/spreadsheets/' + CONFIG.SHEET_ID + '/values/Sheet1!A:D:append?valueInputOption=RAW&key=' + CONFIG.GOOGLE_CLIENT_ID
-    );
+    ;
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -700,7 +700,7 @@ async function sendMessage(text) {
   }
 
   try {
-    const claudeUrl = CONFIG.PROXY_URL + encodeURIComponent('https://api.anthropic.com/v1/messages');
+    const claudeUrl = 'https://api.anthropic.com/v1/messages';
     const res = await fetch(claudeUrl, {
       method: 'POST',
       headers: {
