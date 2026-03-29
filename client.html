@@ -73,6 +73,22 @@ header{z-index:10;padding:14px 16px;display:flex;align-items:center;justify-cont
 .voice-status{text-align:center;font-size:11px;color:var(--muted);margin-top:6px;min-height:14px}
 .voice-status.active{color:var(--red)}
 
+/* FAB RDV Button */
+.fab-rdv{position:fixed;bottom:90px;right:16px;z-index:50;background:var(--orange);color:#fff;border:none;border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 14px rgba(249,115,22,0.35);cursor:pointer;transition:transform 0.2s}
+.fab-rdv:active{transform:scale(0.92)}
+
+/* Settings Panel */
+.settings-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;align-items:center;justify-content:center;padding:20px}
+.settings-overlay.open{display:flex}
+.settings-panel{background:var(--card);border-radius:20px;padding:24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto}
+.settings-panel h3{font-family:'Outfit',sans-serif;font-size:18px;margin-bottom:4px;color:var(--text)}
+.settings-panel .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.settings-panel .form-group{margin-bottom:14px}
+.settings-panel .form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+.settings-panel .form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;background:var(--bg)}
+.settings-panel .form-input:focus{border-color:var(--orange)}
+.settings-stat{font-size:11px;color:var(--muted);padding:6px 0;border-top:1px solid var(--border);margin-top:10px}
+
 /* RDV Form Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
@@ -156,9 +172,37 @@ select.form-input{-webkit-appearance:none;appearance:none;background-image:url("
   </div>
 </div>
 
+<!-- SETTINGS PANEL (admin only - triple-tap logo to open) -->
+<div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-panel">
+    <h3>Parametres Admin</h3>
+    <div class="sub">Configuration des cles API</div>
+    <div class="form-group">
+      <label>Cle API Claude</label>
+      <input class="form-input" id="settClaudeKey" type="password" placeholder="sk-ant-...">
+    </div>
+    <div class="form-group">
+      <label>Token Loyverse</label>
+      <input class="form-input" id="settLoyverseToken" type="password" placeholder="Token API Loyverse">
+    </div>
+    <div class="form-group">
+      <label>Numero WhatsApp</label>
+      <input class="form-input" id="settWhatsapp" type="text" placeholder="+212 XXX XXX XXX">
+    </div>
+    <div class="settings-stat" id="cacheStats">Cache: -- hits / -- appels API</div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-secondary" onclick="closeSettings()">Fermer</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveSettings()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB RDV Button -->
+<button class="fab-rdv" id="fabRdv" onclick="openRdvModal()" title="Prendre rendez-vous">📅</button>
+
 <div class="app">
   <header>
-    <div class="logo">
+    <div class="logo" id="logoTap">
       <div class="logo-icon">📱</div>
       <span>Corner</span>Mobile
     </div>
@@ -185,13 +229,12 @@ select.form-input{-webkit-appearance:none;appearance:none;background-image:url("
   </div>
 
   <div class="input-area">
-    <div class="suggestions">
-      <div class="suggestion" onclick="quickSend('Quels iPhones vous avez ?')">iPhones dispo ?</div>
-      <div class="suggestion" onclick="quickSend('Vous faites les reparations ?')">Reparations ?</div>
-      <div class="suggestion" onclick="quickSend('Quels services a domicile ?')">A domicile</div>
-      <div class="suggestion" onclick="quickSend('Vous etes ou a Rabat ?')">Adresse ?</div>
-      <div class="suggestion" onclick="quickSend('Budget 2000 MAD')">Budget 2000</div>
-      <div class="suggestion" onclick="quickSend('Prendre rendez-vous')">RDV</div>
+    <div class="suggestions" id="suggestionsBar">
+      <div class="suggestion" onclick="quickSend('Quels smartphones vous avez ?')">📱 Vos smartphones</div>
+      <div class="suggestion" onclick="quickSend('Quel est le prix des iPhones ?')">💰 Prix iPhone</div>
+      <div class="suggestion" onclick="quickSend('Vous faites les reparations ?')">🔧 Reparations</div>
+      <div class="suggestion" onclick="quickSend('Quels services a domicile ?')">🏠 Service a domicile</div>
+      <div class="suggestion" onclick="quickSend('Vous etes ou a Rabat ?')">📍 Adresses</div>
     </div>
     <div class="input-row">
       <textarea class="text-input" id="textInput" placeholder="Posez votre question..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -234,15 +277,40 @@ let reparations = null;
 let prestations = null;
 let loyverseItems = [];
 let googleToken = null;
+let cacheHits = 0;
+let apiCalls = 0;
+let logoTapCount = 0;
+let logoTapTimer = null;
 
 // ============================================================
 // INIT
 // ============================================================
 window.onload = async () => {
+  // Load API keys from localStorage
+  CONFIG.CLAUDE_API_KEY = localStorage.getItem('cm_claude_key') || '';
+  CONFIG.LOYVERSE_TOKEN = localStorage.getItem('cm_loyverse_token') || '';
+  const savedWA = localStorage.getItem('cm_whatsapp');
+  if (savedWA) CONFIG.WHATSAPP = savedWA;
+
+  // Load cache stats
+  cacheHits = parseInt(localStorage.getItem('cm_cache_hits') || '0');
+  apiCalls = parseInt(localStorage.getItem('cm_api_calls') || '0');
+
   // Set min date for RDV to today
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('rdvDate').setAttribute('min', today);
   document.getElementById('rdvDate').value = today;
+
+  // Triple-tap on logo to open settings
+  document.getElementById('logoTap').addEventListener('click', function() {
+    logoTapCount++;
+    clearTimeout(logoTapTimer);
+    logoTapTimer = setTimeout(() => { logoTapCount = 0; }, 800);
+    if (logoTapCount >= 3) {
+      logoTapCount = 0;
+      openSettings();
+    }
+  });
 
   // Check for Google OAuth callback
   checkOAuthCallback();
@@ -348,29 +416,33 @@ function checkCache(msg) {
 function buildPublicCatalogue() {
   if (loyverseItems.length === 0) return 'Catalogue non disponible pour le moment.';
 
-  const lines = loyverseItems.map(item => {
-    // For Loyverse items
+  // Deduplicate by item_name, keeping min price
+  const grouped = {};
+  loyverseItems.forEach(item => {
+    const name = item.item_name;
+    let price = 0;
     if (item.variants) {
       const v = item.variants[0] || {};
       const stores = v.stores || [];
-      let minPrice = v.default_price || 0;
+      price = v.default_price || 0;
       stores.forEach(s => {
         if (s.available_for_sale && s.price !== null && s.price !== undefined) {
-          if (s.price < minPrice || minPrice === 0) minPrice = s.price;
+          if (s.price < price || price === 0) price = s.price;
         }
       });
-      if (minPrice === 0) return null;
-      return item.item_name + ' - ' + minPrice + ' MAD';
+    } else if (item._price) {
+      price = item._promo && item._promo < item._price ? item._promo : item._price;
     }
-    // For fallback catalogue items
-    if (item._price) {
-      const promo = item._promo && item._promo < item._price ? ' (PROMO: ' + item._promo + ' MAD !)' : '';
-      return item.item_name + ' - ' + item._price + ' MAD' + promo;
+    if (!grouped[name] || price < grouped[name]) {
+      grouped[name] = price;
     }
-    return null;
-  }).filter(Boolean);
+  });
 
-  return 'CATALOGUE (prix publics):\n' + lines.join('\n');
+  return 'CATALOGUE (prix publics):\n' + Object.entries(grouped)
+    .filter(([, p]) => p > 0)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([n, p]) => n + ' - a partir de ' + p + ' MAD')
+    .join('\n');
 }
 
 function buildRepairInfo() {
@@ -623,14 +695,18 @@ function addMsg(role, text) {
     .replace(/(\d{3,6}\s*MAD)/g, '<strong style="color:var(--orange)">$1</strong>')
     .replace(/\n/g, '<br>');
 
-  // Make WhatsApp number clickable
-  html = html.replace(/(\+212\s*\d{3}\s*\d{3}\s*\d{3})/g, '<a href="https://wa.me/$1" target="_blank">$1</a>');
+  // Make WhatsApp number clickable (strip spaces for wa.me link)
+  html = html.replace(/(\+212[\s\d]+\d)/g, function(match) {
+    const clean = match.replace(/\s/g, '');
+    return '<a href="https://wa.me/' + clean.replace('+', '') + '" target="_blank" style="color:var(--orange);text-decoration:underline">' + match + '</a>';
+  });
 
   b.innerHTML = html;
   m.appendChild(lbl);
   m.appendChild(b);
   c.appendChild(m);
   c.scrollTop = c.scrollHeight;
+  setTimeout(() => { c.scrollTop = c.scrollHeight; }, 100);
 }
 
 function showTyping() {
@@ -683,6 +759,8 @@ async function sendMessage(text) {
   // Check cache first
   const cached = checkCache(msg);
   if (cached) {
+    cacheHits++;
+    localStorage.setItem('cm_cache_hits', cacheHits);
     setTimeout(() => {
       addMsg('ai', cached);
       isLoading = false;
@@ -696,6 +774,16 @@ async function sendMessage(text) {
   }
 
   // Call Claude API
+  if (!CONFIG.CLAUDE_API_KEY) {
+    addMsg('ai', 'Configuration requise ! La cle API Claude n\'est pas configuree. Un administrateur doit triple-taper le logo pour acceder aux parametres. En attendant, contactez-nous sur WhatsApp: ' + CONFIG.WHATSAPP);
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    setStatusPill('En ligne', 'online');
+    return;
+  }
+
+  apiCalls++;
+  localStorage.setItem('cm_api_calls', apiCalls);
   history.push({ role: 'user', content: msg });
   showTyping();
 
@@ -721,7 +809,15 @@ async function sendMessage(text) {
     removeTyping();
 
     if (data.error) {
-      addMsg('ai', 'Petit souci technique ! 😅 Contactez-nous directement sur WhatsApp: ' + CONFIG.WHATSAPP);
+      let errMsg = 'Petit souci technique ! 😅 ';
+      if (data.error.type === 'authentication_error') {
+        errMsg += 'Cle API invalide. Un admin doit verifier la configuration.';
+      } else if (data.error.type === 'rate_limit_error') {
+        errMsg += 'Trop de requetes, reessayez dans quelques secondes.';
+      } else {
+        errMsg += (data.error.message || 'Erreur inconnue') + ' - Contactez-nous sur WhatsApp: ' + CONFIG.WHATSAPP;
+      }
+      addMsg('ai', errMsg);
       setStatusPill('En ligne', 'online');
     } else {
       const reply = data.content[0].text;
@@ -733,7 +829,7 @@ async function sendMessage(text) {
     }
   } catch (e) {
     removeTyping();
-    addMsg('ai', 'Oups, probleme de connexion ! 😅 Contactez-nous sur WhatsApp: ' + CONFIG.WHATSAPP);
+    addMsg('ai', 'Oups, probleme de connexion ! 😅 Verifiez votre internet ou contactez-nous sur WhatsApp: ' + CONFIG.WHATSAPP);
     setStatusPill('En ligne', 'online');
   }
   isLoading = false;
@@ -780,6 +876,31 @@ function stopVoice() {
   document.getElementById('voiceBtn').classList.remove('listening');
   document.getElementById('voiceStatus').textContent = '';
   document.getElementById('voiceStatus').classList.remove('active');
+}
+
+// ============================================================
+// SETTINGS (admin - triple-tap logo)
+// ============================================================
+function openSettings() {
+  document.getElementById('settClaudeKey').value = CONFIG.CLAUDE_API_KEY || '';
+  document.getElementById('settLoyverseToken').value = CONFIG.LOYVERSE_TOKEN || '';
+  document.getElementById('settWhatsapp').value = CONFIG.WHATSAPP || '';
+  document.getElementById('cacheStats').textContent = 'Cache: ' + cacheHits + ' hits / ' + apiCalls + ' appels API';
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+function saveSettings() {
+  CONFIG.CLAUDE_API_KEY = document.getElementById('settClaudeKey').value.trim();
+  CONFIG.LOYVERSE_TOKEN = document.getElementById('settLoyverseToken').value.trim();
+  CONFIG.WHATSAPP = document.getElementById('settWhatsapp').value.trim();
+  localStorage.setItem('cm_claude_key', CONFIG.CLAUDE_API_KEY);
+  localStorage.setItem('cm_loyverse_token', CONFIG.LOYVERSE_TOKEN);
+  localStorage.setItem('cm_whatsapp', CONFIG.WHATSAPP);
+  closeSettings();
+  // Reload catalogue with new token if set
+  if (CONFIG.LOYVERSE_TOKEN) loadPublicCatalogue();
 }
 </script>
 </body>

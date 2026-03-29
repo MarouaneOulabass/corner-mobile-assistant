@@ -120,6 +120,15 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 <div class="drawer" id="drawer">
   <h3>Parametres</h3>
   <div class="d-section">
+    <div class="d-label">Cles API</div>
+    <input class="d-input" id="claudeKeyInput" type="password" placeholder="Cle API Claude (sk-ant-...)">
+    <input class="d-input" id="loyverseTokenInput" type="password" placeholder="Token API Loyverse">
+    <input class="d-input" id="googleClientIdInput" type="text" placeholder="Google Client ID">
+    <input class="d-input" id="googleClientSecretInput" type="password" placeholder="Google Client Secret">
+    <button class="d-btn d-btn-p" onclick="saveApiKeys()">Sauvegarder les cles</button>
+    <div class="d-status" id="apiKeyStatus"></div>
+  </div>
+  <div class="d-section">
     <div class="d-label">Stock Loyverse</div>
     <div class="kb-item"><span>M1 Ait Baha</span><span class="kb-s" id="s-m1">...</span></div>
     <div class="kb-item"><span>M2 Oued Dahab</span><span class="kb-s" id="s-m2">...</span></div>
@@ -260,8 +269,13 @@ window.onload = () => {
 };
 
 async function initApp() {
-  loadVoicePref();
+  // Load all keys from localStorage
+  CONFIG.CLAUDE_API_KEY = localStorage.getItem('cm_claude_key') || '';
+  CONFIG.LOYVERSE_TOKEN = localStorage.getItem('cm_loyverse_token') || '';
+  CONFIG.GOOGLE_CLIENT_ID = localStorage.getItem('cm_google_client_id') || '';
+  CONFIG.GOOGLE_CLIENT_SECRET = localStorage.getItem('cm_google_client_secret') || '';
   CONFIG.SHEET_ID = localStorage.getItem('cm_sheet_id') || '';
+  loadVoicePref();
   document.getElementById('sheetIdInput').value = CONFIG.SHEET_ID;
   await Promise.all([loadLoyverseStock(), loadLocalKnowledge()]);
 }
@@ -326,7 +340,7 @@ async function loadLoyverseStock() {
     document.getElementById('s-m2').className = 'kb-s ok';
     document.getElementById('s-total').textContent = loyverseItems.length + ' total';
     document.getElementById('s-total').className = 'kb-s ok';
-    document.getElementById('stockBadge').textContent = 'Stock: ' + loyverseItems.length;
+    document.getElementById('stockBadge').textContent = '\uD83D\uDCE6 ' + loyverseItems.length + ' articles';
     document.getElementById('stockStatus').textContent = 'Stock charge: ' + loyverseItems.length + ' articles';
     document.getElementById('stockStatus').className = 'd-status ok';
     setStatus('Pret', 'ok');
@@ -379,36 +393,44 @@ async function loadLocalKnowledge() {
 // BUILD STOCK STRING FOR CLAUDE
 // ============================================================
 function buildStockData() {
-  // Prefer Loyverse live data
+  // Prefer Loyverse live data - deduplicate by item_name, aggregate per store
   if (loyverseItems.length > 0) {
-    const lines = loyverseItems.map(item => {
+    const grouped = {};
+    loyverseItems.forEach(item => {
       const name = item.item_name || 'Sans nom';
-      const desc = item.description || '';
       const v = item.variants && item.variants[0] ? item.variants[0] : {};
       const defaultPrice = v.default_price || 0;
       const stores = v.stores || [];
 
-      let m1info = 'Non dispo';
-      let m2info = 'Non dispo';
+      if (!grouped[name]) grouped[name] = { m1: [], m2: [] };
 
       stores.forEach(s => {
         const price = s.price !== null && s.price !== undefined ? s.price : defaultPrice;
-        if (s.store_id === CONFIG.STORE_M1_ID) {
-          m1info = s.available_for_sale ? (price + ' MAD - En stock') : 'Non dispo';
+        if (s.store_id === CONFIG.STORE_M1_ID && s.available_for_sale) {
+          grouped[name].m1.push(price);
         }
-        if (s.store_id === CONFIG.STORE_M2_ID) {
-          m2info = s.available_for_sale ? (price + ' MAD - En stock') : 'Non dispo';
+        if (s.store_id === CONFIG.STORE_M2_ID && s.available_for_sale) {
+          grouped[name].m2.push(price);
         }
       });
+    });
+
+    const lines = Object.entries(grouped).map(([name, info]) => {
+      const m1 = info.m1;
+      const m2 = info.m2;
 
       // Filter by store if needed
-      if (activeStoreFilter === 'm1' && m1info === 'Non dispo') return null;
-      if (activeStoreFilter === 'm2' && m2info === 'Non dispo') return null;
+      if (activeStoreFilter === 'm1' && m1.length === 0) return null;
+      if (activeStoreFilter === 'm2' && m2.length === 0) return null;
 
-      return name + ' | ' + desc.substring(0, 80) + ' | M1(Ait Baha): ' + m1info + ' | M2(Oued Dahab): ' + m2info;
+      const m1info = m1.length > 0 ? (Math.min(...m1) + ' MAD (' + m1.length + ' dispo)') : 'Non dispo';
+      const m2info = m2.length > 0 ? (Math.min(...m2) + ' MAD (' + m2.length + ' dispo)') : 'Non dispo';
+
+      return name + ' | M1: ' + m1info + ' | M2: ' + m2info;
     }).filter(Boolean);
 
-    return 'STOCK EN TEMPS REEL (Loyverse - ' + loyverseItems.length + ' articles, ' + lines.length + ' affiches):\n' + lines.join('\n');
+    const uniqueCount = Object.keys(grouped).length;
+    return 'STOCK EN TEMPS REEL (Loyverse - ' + loyverseItems.length + ' articles, ' + uniqueCount + ' produits uniques, ' + lines.length + ' affiches):\n' + lines.join('\n');
   }
 
   // Fallback to catalogue.json
@@ -488,12 +510,31 @@ function switchStore(store, btn) {
 // DRAWER
 // ============================================================
 function openDrawer() {
+  // Populate API key inputs
+  document.getElementById('claudeKeyInput').value = CONFIG.CLAUDE_API_KEY || '';
+  document.getElementById('loyverseTokenInput').value = CONFIG.LOYVERSE_TOKEN || '';
+  document.getElementById('googleClientIdInput').value = CONFIG.GOOGLE_CLIENT_ID || '';
+  document.getElementById('googleClientSecretInput').value = CONFIG.GOOGLE_CLIENT_SECRET || '';
   document.getElementById('drawer').classList.add('open');
   document.getElementById('overlay').classList.add('open');
 }
 function closeDrawer() {
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('overlay').classList.remove('open');
+}
+
+function saveApiKeys() {
+  CONFIG.CLAUDE_API_KEY = document.getElementById('claudeKeyInput').value.trim();
+  CONFIG.LOYVERSE_TOKEN = document.getElementById('loyverseTokenInput').value.trim();
+  CONFIG.GOOGLE_CLIENT_ID = document.getElementById('googleClientIdInput').value.trim();
+  CONFIG.GOOGLE_CLIENT_SECRET = document.getElementById('googleClientSecretInput').value.trim();
+  localStorage.setItem('cm_claude_key', CONFIG.CLAUDE_API_KEY);
+  localStorage.setItem('cm_loyverse_token', CONFIG.LOYVERSE_TOKEN);
+  localStorage.setItem('cm_google_client_id', CONFIG.GOOGLE_CLIENT_ID);
+  localStorage.setItem('cm_google_client_secret', CONFIG.GOOGLE_CLIENT_SECRET);
+  const st = document.getElementById('apiKeyStatus');
+  st.textContent = 'Cles sauvegardees !';
+  st.className = 'd-status ok';
 }
 
 // ============================================================
@@ -619,6 +660,7 @@ function addMsg(role, text) {
   m.appendChild(b);
   c.appendChild(m);
   c.scrollTop = c.scrollHeight;
+  setTimeout(() => { c.scrollTop = c.scrollHeight; }, 100);
 }
 
 function showTyping() {
@@ -648,6 +690,15 @@ async function sendMessage(text) {
   history.push({ role: 'user', content: msg });
   showTyping();
 
+  if (!CONFIG.CLAUDE_API_KEY) {
+    removeTyping();
+    addMsg('ai', 'Cle API Claude non configuree ! Ouvrez les parametres (engrenage) pour entrer votre cle.');
+    setStatus('Config manquante', 'error');
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    return;
+  }
+
   try {
     const claudeUrl = CONFIG.PROXY_URL + encodeURIComponent('https://api.anthropic.com/v1/messages');
     const res = await fetch(claudeUrl, {
@@ -670,7 +721,17 @@ async function sendMessage(text) {
     removeTyping();
 
     if (data.error) {
-      addMsg('ai', 'Erreur API: ' + data.error.message);
+      let errMsg = 'Erreur API: ';
+      if (data.error.type === 'authentication_error') {
+        errMsg += 'Cle API invalide. Verifiez dans les parametres.';
+      } else if (data.error.type === 'rate_limit_error') {
+        errMsg += 'Rate limit atteint. Reessayez dans quelques secondes.';
+      } else if (data.error.type === 'overloaded_error') {
+        errMsg += 'API surchargee. Reessayez dans un instant.';
+      } else {
+        errMsg += data.error.message || 'Erreur inconnue';
+      }
+      addMsg('ai', errMsg);
       setStatus('Erreur', 'error');
     } else {
       const reply = data.content[0].text;
