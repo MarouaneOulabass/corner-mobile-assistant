@@ -351,38 +351,23 @@ async function loadPrestations() {
 async function loadPublicCatalogue() {
   setStatusPill('Chargement...', 'loading');
   try {
-    let allItems = [];
-    let cursor = null;
-    let page = 0;
-    do {
-      let url = 'https://api.loyverse.com/v1.0/items?limit=250';
-      if (cursor) url += '&cursor=' + cursor;
-      const res = await fetch(url, {
-        headers: { 'Authorization': 'Bearer ' + CONFIG.LOYVERSE_TOKEN }
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      if (data.items) allItems = allItems.concat(data.items);
-      cursor = data.cursor || null;
-      page++;
-    } while (cursor && page < 10);
-    loyverseItems = allItems;
-    setStatusPill('En ligne', 'online');
+    // Load from catalogue.json (auto-updated every 30min by GitHub Actions from Loyverse)
+    const r = await fetch('catalogue.json?t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const cat = await r.json();
+    loyverseItems = (cat.appareils || []).filter(x => x.dispo).map(x => ({
+      item_name: x.nom,
+      description: x.description || '',
+      _price: x.prix,
+      _price_m1: x.prix_m1,
+      _price_m2: x.prix_m2,
+      _stock_m1: x.stock_m1,
+      _stock_m2: x.stock_m2
+    }));
+    const updated = cat.updated ? new Date(cat.updated).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '';
+    setStatusPill('En ligne' + (updated ? ' · ' + updated : ''), 'online');
   } catch (e) {
-    console.warn('Loyverse load failed, using fallback:', e);
-    try {
-      const r = await fetch('catalogue.json');
-      if (r.ok) {
-        const cat = await r.json();
-        // Convert to simplified format
-        loyverseItems = (cat.appareils || []).filter(x => x.dispo).map(x => ({
-          item_name: x.nom,
-          description: x.description || '',
-          _price: x.prix,
-          _promo: x.prix_promo
-        }));
-      }
-    } catch (e2) {}
+    console.warn('catalogue.json load failed:', e);
     setStatusPill('En ligne', 'online');
   }
 }

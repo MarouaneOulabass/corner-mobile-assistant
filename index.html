@@ -297,63 +297,50 @@ function setStatus(t, type) {
 // ============================================================
 async function loadLoyverseStock() {
   setStatus('Stock...', 'loading');
-  document.getElementById('stockStatus').textContent = 'Chargement du stock Loyverse...';
+  document.getElementById('stockStatus').textContent = 'Chargement du stock...';
   document.getElementById('stockStatus').className = 'd-status';
 
   try {
-    let allItems = [];
-    let cursor = null;
-    let page = 0;
+    // Load from catalogue.json (auto-updated every 30min by GitHub Actions from Loyverse API)
+    const r = await fetch('catalogue.json?t=' + Date.now());
+    if (!r.ok) throw new Error('catalogue.json: ' + r.status);
+    const cat = await r.json();
+    const appareils = cat.appareils || [];
 
-    // Paginate through all items
-    do {
-      let url = 'https://api.loyverse.com/v1.0/items?limit=250';
-      if (cursor) url += '&cursor=' + cursor;
+    // Convert to internal format with store details
+    loyverseItems = appareils.map(x => ({
+      item_name: x.nom,
+      description: x.description || '',
+      _price: x.prix,
+      _cost: x.cout,
+      _price_m1: x.prix_m1,
+      _price_m2: x.prix_m2,
+      _stock_m1: x.stock_m1 || 0,
+      _stock_m2: x.stock_m2 || 0,
+      _dispo: x.dispo
+    }));
 
-      const res = await fetch(url, {
-        headers: { 'Authorization': 'Bearer ' + CONFIG.LOYVERSE_TOKEN }
-      });
-
-      if (!res.ok) throw new Error('Loyverse API: ' + res.status);
-      const data = await res.json();
-      if (data.items) allItems = allItems.concat(data.items);
-      cursor = data.cursor || null;
-      page++;
-    } while (cursor && page < 10);
-
-    loyverseItems = allItems;
-
-    // Count items per store
-    let m1Count = 0, m2Count = 0;
-    loyverseItems.forEach(item => {
-      if (!item.variants || !item.variants[0]) return;
-      const stores = item.variants[0].stores || [];
-      stores.forEach(s => {
-        if (s.store_id === CONFIG.STORE_M1_ID && s.available_for_sale) m1Count++;
-        if (s.store_id === CONFIG.STORE_M2_ID && s.available_for_sale) m2Count++;
-      });
-    });
+    let m1Count = appareils.filter(x => x.stock_m1 > 0).length;
+    let m2Count = appareils.filter(x => x.stock_m2 > 0).length;
 
     document.getElementById('s-m1').textContent = m1Count + ' items';
     document.getElementById('s-m1').className = 'kb-s ok';
     document.getElementById('s-m2').textContent = m2Count + ' items';
     document.getElementById('s-m2').className = 'kb-s ok';
-    document.getElementById('s-total').textContent = loyverseItems.length + ' total';
+    document.getElementById('s-total').textContent = appareils.length + ' total';
     document.getElementById('s-total').className = 'kb-s ok';
-    document.getElementById('stockBadge').textContent = '\uD83D\uDCE6 ' + loyverseItems.length + ' articles';
-    document.getElementById('stockStatus').textContent = 'Stock charge: ' + loyverseItems.length + ' articles';
+    document.getElementById('stockBadge').textContent = '\uD83D\uDCE6 ' + appareils.length + ' articles';
+
+    const updated = cat.updated ? new Date(cat.updated).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '';
+    document.getElementById('stockStatus').textContent = 'Stock: ' + appareils.length + ' produits' + (updated ? ' (MAJ ' + updated + ')' : '');
     document.getElementById('stockStatus').className = 'd-status ok';
     setStatus('Pret', 'ok');
   } catch (e) {
-    console.error('Loyverse error:', e);
-    document.getElementById('s-m1').textContent = 'Erreur';
-    document.getElementById('s-m1').className = 'kb-s miss';
-    document.getElementById('s-m2').textContent = 'Erreur';
-    document.getElementById('s-m2').className = 'kb-s miss';
-    document.getElementById('stockStatus').textContent = 'Erreur: ' + e.message + ' - Fallback catalogue.json';
+    console.error('Stock error:', e);
+    document.getElementById('stockStatus').textContent = 'Erreur: ' + e.message;
     document.getElementById('stockStatus').className = 'd-status err';
-    document.getElementById('stockBadge').textContent = 'Stock: local';
-    setStatus('Fallback', 'error');
+    document.getElementById('stockBadge').textContent = 'Stock: erreur';
+    setStatus('Erreur', 'error');
   }
 }
 
@@ -393,57 +380,31 @@ async function loadLocalKnowledge() {
 // BUILD STOCK STRING FOR CLAUDE
 // ============================================================
 function buildStockData() {
-  // Prefer Loyverse live data - deduplicate by item_name, aggregate per store
-  if (loyverseItems.length > 0) {
-    const grouped = {};
-    loyverseItems.forEach(item => {
-      const name = item.item_name || 'Sans nom';
-      const v = item.variants && item.variants[0] ? item.variants[0] : {};
-      const defaultPrice = v.default_price || 0;
-      const stores = v.stores || [];
-
-      if (!grouped[name]) grouped[name] = { m1: [], m2: [] };
-
-      stores.forEach(s => {
-        const price = s.price !== null && s.price !== undefined ? s.price : defaultPrice;
-        if (s.store_id === CONFIG.STORE_M1_ID && s.available_for_sale) {
-          grouped[name].m1.push(price);
-        }
-        if (s.store_id === CONFIG.STORE_M2_ID && s.available_for_sale) {
-          grouped[name].m2.push(price);
-        }
-      });
-    });
-
-    const lines = Object.entries(grouped).map(([name, info]) => {
-      const m1 = info.m1;
-      const m2 = info.m2;
-
-      // Filter by store if needed
-      if (activeStoreFilter === 'm1' && m1.length === 0) return null;
-      if (activeStoreFilter === 'm2' && m2.length === 0) return null;
-
-      const m1info = m1.length > 0 ? (Math.min(...m1) + ' MAD (' + m1.length + ' dispo)') : 'Non dispo';
-      const m2info = m2.length > 0 ? (Math.min(...m2) + ' MAD (' + m2.length + ' dispo)') : 'Non dispo';
-
-      return name + ' | M1: ' + m1info + ' | M2: ' + m2info;
-    }).filter(Boolean);
-
-    const uniqueCount = Object.keys(grouped).length;
-    return 'STOCK EN TEMPS REEL (Loyverse - ' + loyverseItems.length + ' articles, ' + uniqueCount + ' produits uniques, ' + lines.length + ' affiches):\n' + lines.join('\n');
+  if (loyverseItems.length === 0) {
+    return 'STOCK: Non disponible - reponds "Je verifie le stock, une seconde"';
   }
 
-  // Fallback to catalogue.json
-  if (catalogue && catalogue.appareils) {
-    const lines = catalogue.appareils.filter(x => x.dispo && x.prix).map(x => {
-      const promo = x.prix_promo && x.prix_promo < x.prix ? ' | PROMO:' + x.prix_promo + ' MAD' : '';
-      const urgence = x.stock === 1 ? ' | DERNIER EN STOCK' : '';
-      return x.nom + ' | ' + x.prix + ' MAD' + promo + ' | stock:' + x.stock + urgence;
-    });
-    return 'STOCK LOCAL (catalogue.json - pas de donnees temps reel):\n' + lines.join('\n');
-  }
+  const lines = loyverseItems.map(item => {
+    const name = item.item_name || 'Sans nom';
+    const price = item._price || 0;
+    const cost = item._cost || 0;
+    const sm1 = item._stock_m1 || 0;
+    const sm2 = item._stock_m2 || 0;
+    const pm1 = item._price_m1 || price;
+    const pm2 = item._price_m2 || price;
 
-  return 'STOCK: Non disponible - reponds "Je verifie le stock, une seconde"';
+    // Filter by active store
+    if (activeStoreFilter === 'm1' && sm1 === 0) return null;
+    if (activeStoreFilter === 'm2' && sm2 === 0) return null;
+
+    const m1info = sm1 > 0 ? pm1 + ' MAD (' + sm1 + ' dispo)' : 'Indispo';
+    const m2info = sm2 > 0 ? pm2 + ' MAD (' + sm2 + ' dispo)' : 'Indispo';
+    const margin = cost > 0 ? ' | Marge: ' + Math.round((price - cost) / price * 100) + '%' : '';
+
+    return name + ' | M1: ' + m1info + ' | M2: ' + m2info + ' | Cout: ' + cost + ' MAD' + margin;
+  }).filter(Boolean);
+
+  return 'STOCK (' + loyverseItems.length + ' produits, MAJ via Loyverse):\n' + lines.join('\n');
 }
 
 function buildRepairData() {
