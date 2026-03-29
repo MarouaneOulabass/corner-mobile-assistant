@@ -588,10 +588,22 @@ async function createCalendarEvent(rdvData) {
 }
 
 async function checkCalendarAvailability(date, time) {
-  if (!googleToken) return { available: true }; // assume available if no auth
+  // 1. Check business hours (Lundi-Samedi 9h-20h)
+  const dt = new Date(date + 'T' + time + ':00');
+  const day = dt.getDay(); // 0=Sunday
+  const hour = dt.getHours();
+  if (day === 0) return { available: false, reason: 'Dimanche - on est ferme ! Choisissez un jour du Lundi au Samedi.' };
+  if (hour < 9) return { available: false, reason: 'Trop tot ! On est disponible a partir de 9h.' };
+  if (hour >= 20) return { available: false, reason: 'Trop tard ! On est disponible jusqu\'a 20h.' };
 
-  const startDate = new Date(date + 'T' + time + ':00');
-  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+  // 2. Check date is not in the past
+  if (dt < new Date()) return { available: false, reason: 'Cette date est deja passee ! Choisissez une date future.' };
+
+  // 3. Check Google Calendar if token available
+  if (!googleToken) return { available: true, reason: '' }; // no auth = assume available
+
+  const startDate = dt;
+  const endDate = new Date(startDate.getTime() + 90 * 60 * 1000); // 1h30 slot
 
   try {
     const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?' +
@@ -603,12 +615,28 @@ async function checkCalendarAvailability(date, time) {
       headers: { 'Authorization': 'Bearer ' + googleToken }
     });
 
+    if (res.status === 401) {
+      // Token expired - clear and continue without check
+      localStorage.removeItem('cm_google_token');
+      googleToken = null;
+      return { available: true, reason: '' };
+    }
+
     if (res.ok) {
       const data = await res.json();
-      return { available: !data.items || data.items.length === 0 };
+      const busy = (data.items || []).filter(e => e.status !== 'cancelled');
+      if (busy.length > 0) {
+        // Find next free slot
+        const busyEnd = new Date(busy[busy.length - 1].end.dateTime || busy[busy.length - 1].end.date);
+        const nextHour = busyEnd.getHours() + ':' + String(busyEnd.getMinutes()).padStart(2, '0');
+        return { available: false, reason: 'Ce creneau est deja pris ! Le prochain disponible est a ' + nextHour + '.' };
+      }
+      return { available: true, reason: '' };
     }
-  } catch (e) {}
-  return { available: true };
+  } catch (e) {
+    console.warn('Calendar check failed:', e);
+  }
+  return { available: true, reason: '' };
 }
 
 // ============================================================
@@ -639,9 +667,10 @@ async function submitRdv() {
   const rdvData = { name, phone, address, service, date, time };
 
   // Check calendar availability
+  addMsg('ai', 'Je verifie la disponibilite... 🔍');
   const avail = await checkCalendarAvailability(date, time);
   if (!avail.available) {
-    addMsg('ai', 'Oups, ce creneau est deja pris ! 😅 Essayez un autre horaire. On est disponibles du Lundi au Samedi, 9h-20h.');
+    addMsg('ai', '😅 ' + (avail.reason || 'Ce creneau n\'est pas disponible.') + '\n\nReessayez avec un autre horaire ! On est disponibles du Lundi au Samedi, 9h-20h 📅');
     openRdvModal();
     return;
   }
