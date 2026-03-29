@@ -2,9 +2,8 @@ name: Update Stock from Loyverse
 
 on:
   schedule:
-    # Every 30 minutes
     - cron: '*/30 * * * *'
-  workflow_dispatch: # Manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,161 +14,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch Loyverse inventory
+      - name: Fetch and build catalogue
         env:
           LOYVERSE_TOKEN: ${{ secrets.LOYVERSE_TOKEN }}
         run: |
-          echo "Fetching items from Loyverse API..."
+          set -e
 
-          # Fetch all items (paginate)
+          # 1. Fetch all items
+          echo "Fetching items..."
           ALL_ITEMS="[]"
           CURSOR=""
           PAGE=0
-
           while true; do
             URL="https://api.loyverse.com/v1.0/items?limit=250"
-            if [ -n "$CURSOR" ]; then
-              URL="${URL}&cursor=${CURSOR}"
-            fi
-
+            [ -n "$CURSOR" ] && URL="${URL}&cursor=${CURSOR}"
             RESPONSE=$(curl -sf -H "Authorization: Bearer $LOYVERSE_TOKEN" "$URL")
-            if [ $? -ne 0 ]; then
-              echo "API call failed"
-              break
-            fi
-
             ITEMS=$(echo "$RESPONSE" | jq '.items // []')
-            ITEM_COUNT=$(echo "$ITEMS" | jq 'length')
-            echo "Page $PAGE: $ITEM_COUNT items"
-
-            ALL_ITEMS=$(echo "$ALL_ITEMS $ITEMS" | jq -s '.[0] + .[1]')
-
+            COUNT=$(echo "$ITEMS" | jq 'length')
+            echo "  Page $PAGE: $COUNT items"
+            ALL_ITEMS=$(echo "$ALL_ITEMS" "$ITEMS" | jq -s '.[0] + .[1]')
             CURSOR=$(echo "$RESPONSE" | jq -r '.cursor // empty')
-            if [ -z "$CURSOR" ]; then
-              break
-            fi
-
+            [ -z "$CURSOR" ] && break
             PAGE=$((PAGE + 1))
-            if [ $PAGE -ge 20 ]; then
-              break
-            fi
+            [ $PAGE -ge 20 ] && break
           done
+          echo "Total: $(echo "$ALL_ITEMS" | jq 'length') items"
 
-          TOTAL=$(echo "$ALL_ITEMS" | jq 'length')
-          echo "Total items fetched: $TOTAL"
-
-          # Fetch inventory levels for both stores
-          STORE_M1="f8ed77ef-df1b-46b8-9e7d-edb2acadc720"
-          STORE_M2="ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6"
-
+          # 2. Fetch inventory
+          echo "Fetching inventory..."
           INV_M1=$(curl -sf -H "Authorization: Bearer $LOYVERSE_TOKEN" \
-            "https://api.loyverse.com/v1.0/inventory?store_id=$STORE_M1&limit=250" | jq '.inventory_levels // []')
-
+            "https://api.loyverse.com/v1.0/inventory?store_id=f8ed77ef-df1b-46b8-9e7d-edb2acadc720&limit=250" \
+            | jq '.inventory_levels // []')
           INV_M2=$(curl -sf -H "Authorization: Bearer $LOYVERSE_TOKEN" \
-            "https://api.loyverse.com/v1.0/inventory?store_id=$STORE_M2&limit=250" | jq '.inventory_levels // []')
+            "https://api.loyverse.com/v1.0/inventory?store_id=ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6&limit=250" \
+            | jq '.inventory_levels // []')
+          echo "  M1: $(echo "$INV_M1" | jq 'length') levels"
+          echo "  M2: $(echo "$INV_M2" | jq 'length') levels"
 
-          echo "M1 inventory: $(echo "$INV_M1" | jq 'length') items"
-          echo "M2 inventory: $(echo "$INV_M2" | jq 'length') items"
-
-          # Build catalogue.json with stock levels
-          python3 << 'PYEOF'
-          import json, sys
-          from datetime import datetime
-
-          items = json.loads(open('/dev/stdin', 'r').read() if False else '[]')
-
-          # Read from env/files
-          with open('/tmp/all_items.json', 'r') as f:
-              items = json.load(f)
-          with open('/tmp/inv_m1.json', 'r') as f:
-              inv_m1 = {x['variant_id']: x['in_stock'] for x in json.load(f)}
-          with open('/tmp/inv_m2.json', 'r') as f:
-              inv_m2 = {x['variant_id']: x['in_stock'] for x in json.load(f)}
-
-          # Group by item name, aggregate stock
-          grouped = {}
-          for item in items:
-              name = item['item_name']
-              desc = item.get('description', '')
-              variant = item.get('variants', [{}])[0]
-              vid = variant.get('variant_id', '')
-              stores = variant.get('stores', [])
-
-              price_m1 = None
-              price_m2 = None
-              avail_m1 = False
-              avail_m2 = False
-
-              for s in stores:
-                  if 'f8ed77ef' in s.get('store_id', ''):
-                      price_m1 = s.get('price')
-                      avail_m1 = s.get('available_for_sale', False)
-                  elif 'ed81c93c' in s.get('store_id', ''):
-                      price_m2 = s.get('price')
-                      avail_m2 = s.get('available_for_sale', False)
-
-              stock_m1 = inv_m1.get(vid, 0)
-              stock_m2 = inv_m2.get(vid, 0)
-
-              default_price = variant.get('default_price', 0)
-              cost = variant.get('cost', 0)
-
-              if name not in grouped:
-                  grouped[name] = {
-                      'nom': name,
-                      'description': desc,
-                      'prix': default_price,
-                      'prix_m1': price_m1,
-                      'prix_m2': price_m2,
-                      'cout': cost,
-                      'stock_m1': 0,
-                      'stock_m2': 0,
-                      'dispo': False
-                  }
-
-              grouped[name]['stock_m1'] += stock_m1 if stock_m1 > 0 else (1 if avail_m1 else 0)
-              grouped[name]['stock_m2'] += stock_m2 if stock_m2 > 0 else (1 if avail_m2 else 0)
-
-              # Use lowest non-zero price
-              if price_m1 and (price_m1 < grouped[name]['prix'] or grouped[name]['prix'] == 0):
-                  grouped[name]['prix'] = price_m1
-              if price_m2 and (price_m2 < grouped[name]['prix'] or grouped[name]['prix'] == 0):
-                  grouped[name]['prix'] = price_m2
-
-              if avail_m1 or avail_m2 or stock_m1 > 0 or stock_m2 > 0:
-                  grouped[name]['dispo'] = True
-
-          catalogue = {
-              'updated': datetime.utcnow().isoformat() + 'Z',
-              'stores': {
-                  'M1': 'Centre Commercial Ait Baha, Rabat',
-                  'M2': 'Centre Commercial Oued Dahab (9isaria), Rabat'
-              },
-              'appareils': sorted(grouped.values(), key=lambda x: x['nom'])
-          }
-
-          with open('catalogue.json', 'w', encoding='utf-8') as f:
-              json.dump(catalogue, f, ensure_ascii=False, indent=2)
-
-          print(f"Catalogue: {len(grouped)} unique products")
-          dispo = sum(1 for x in grouped.values() if x['dispo'])
-          print(f"Available: {dispo}")
-          PYEOF
-
-          # Save intermediate files for Python
-          echo "$ALL_ITEMS" > /tmp/all_items.json
+          # 3. Save to temp files FIRST
+          echo "$ALL_ITEMS" > /tmp/items.json
           echo "$INV_M1" > /tmp/inv_m1.json
           echo "$INV_M2" > /tmp/inv_m2.json
 
-          python3 << 'PYEOF2'
+          # 4. Build catalogue.json with Python
+          python3 << 'EOF'
           import json
-          from datetime import datetime
+          from datetime import datetime, timezone
 
-          with open('/tmp/all_items.json', 'r') as f:
+          with open('/tmp/items.json') as f:
               items = json.load(f)
-          with open('/tmp/inv_m1.json', 'r') as f:
+          with open('/tmp/inv_m1.json') as f:
               inv_m1 = {x['variant_id']: x['in_stock'] for x in json.load(f)}
-          with open('/tmp/inv_m2.json', 'r') as f:
+          with open('/tmp/inv_m2.json') as f:
               inv_m2 = {x['variant_id']: x['in_stock'] for x in json.load(f)}
 
           grouped = {}
@@ -179,10 +75,8 @@ jobs:
               variant = (item.get('variants') or [{}])[0]
               vid = variant.get('variant_id', '')
               stores = variant.get('stores', [])
-
               price_m1 = price_m2 = None
               avail_m1 = avail_m2 = False
-
               for s in stores:
                   sid = s.get('store_id', '')
                   if 'f8ed77ef' in sid:
@@ -191,50 +85,31 @@ jobs:
                   elif 'ed81c93c' in sid:
                       price_m2 = s.get('price')
                       avail_m2 = s.get('available_for_sale', False)
-
               stock_m1 = inv_m1.get(vid, 0)
               stock_m2 = inv_m2.get(vid, 0)
               default_price = variant.get('default_price', 0)
               cost = variant.get('cost', 0)
-
               if name not in grouped:
-                  grouped[name] = {
-                      'nom': name,
-                      'description': desc,
-                      'prix': default_price,
-                      'prix_m1': price_m1,
-                      'prix_m2': price_m2,
-                      'cout': cost,
-                      'stock_m1': 0,
-                      'stock_m2': 0,
-                      'dispo': False
-                  }
-
+                  grouped[name] = {'nom': name, 'description': desc, 'prix': default_price,
+                      'prix_m1': price_m1, 'prix_m2': price_m2, 'cout': cost,
+                      'stock_m1': 0, 'stock_m2': 0, 'dispo': False}
               g = grouped[name]
               g['stock_m1'] += max(stock_m1, 1 if avail_m1 else 0)
               g['stock_m2'] += max(stock_m2, 1 if avail_m2 else 0)
-              if price_m1 and (price_m1 < g['prix'] or g['prix'] == 0):
-                  g['prix'] = price_m1
-              if price_m2 and (price_m2 < g['prix'] or g['prix'] == 0):
-                  g['prix'] = price_m2
-              if avail_m1 or avail_m2 or stock_m1 > 0 or stock_m2 > 0:
-                  g['dispo'] = True
+              if price_m1 and (price_m1 < g['prix'] or g['prix'] == 0): g['prix'] = price_m1
+              if price_m2 and (price_m2 < g['prix'] or g['prix'] == 0): g['prix'] = price_m2
+              if avail_m1 or avail_m2 or stock_m1 > 0 or stock_m2 > 0: g['dispo'] = True
 
           catalogue = {
-              'updated': datetime.utcnow().isoformat() + 'Z',
-              'stores': {
-                  'M1': 'Centre Commercial Ait Baha, Rabat',
-                  'M2': 'Centre Commercial Oued Dahab (9isaria), Rabat'
-              },
+              'updated': datetime.now(timezone.utc).isoformat(),
+              'stores': {'M1': 'Centre Commercial Ait Baha, Rabat', 'M2': 'Centre Commercial Oued Dahab (9isaria), Rabat'},
               'appareils': sorted(grouped.values(), key=lambda x: x['nom'])
           }
-
           with open('catalogue.json', 'w', encoding='utf-8') as f:
               json.dump(catalogue, f, ensure_ascii=False, indent=2)
-
           dispo = sum(1 for x in grouped.values() if x['dispo'])
-          print(f"Catalogue updated: {len(grouped)} products, {dispo} available")
-          PYEOF2
+          print(f"Catalogue: {len(grouped)} products, {dispo} available")
+          EOF
 
       - name: Commit and push
         run: |
@@ -242,8 +117,8 @@ jobs:
           git config user.email "action@github.com"
           git add catalogue.json
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
           else
-            git commit -m "Auto-update stock from Loyverse [$(date -u +%Y-%m-%dT%H:%M:%SZ)]"
+            git commit -m "Auto-update stock [$(date -u +%H:%M)]"
             git push
           fi
