@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FFF8F0">
+<title>Corner Mobile - Votre assistant</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --orange:#F97316;--orange-light:#FED7AA;--orange-bg:rgba(249,115,22,0.08);
+  --amber:#F59E0B;--green:#22C55E;--red:#EF4444;
+  --bg:#FFF8F0;--card:#FFFFFF;--card-shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --text:#1F2937;--muted:#6B7280;--border:#F3E8DE;
+  --radius:16px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
+.app{display:flex;flex-direction:column;height:100dvh;max-height:-webkit-fill-available;overflow:hidden;position:fixed;inset:0}
+header{z-index:10;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;box-shadow:var(--card-shadow)}
+.logo{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--orange),var(--amber));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo span{color:var(--orange)}
+.header-right{display:flex;align-items:center;gap:8px}
+.status-pill{font-size:11px;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px}
+.status-pill.online{background:rgba(34,197,94,0.1);color:var(--green)}
+.status-pill.loading{background:rgba(249,115,22,0.1);color:var(--orange)}
+.status-dot-sm{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.lang-btn{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'Inter',sans-serif}
+
+.messages{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch;background:var(--bg)}
+.messages::-webkit-scrollbar{width:3px}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.msg{display:flex;flex-direction:column;gap:4px;animation:msgIn 0.3s ease both}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-items:flex-end}.msg.ai{align-items:flex-start}
+.msg-label{font-size:10px;font-weight:600;color:var(--muted);padding:0 6px;text-transform:uppercase;letter-spacing:0.5px}
+.bubble{max-width:85%;padding:12px 16px;font-size:14.5px;line-height:1.65;word-break:break-word}
+.msg.user .bubble{background:var(--orange);color:white;border-radius:var(--radius) var(--radius) 4px var(--radius);box-shadow:0 2px 8px rgba(249,115,22,0.25)}
+.msg.ai .bubble{background:var(--card);border:1px solid var(--border);border-radius:var(--radius) var(--radius) var(--radius) 4px;color:var(--text);box-shadow:var(--card-shadow)}
+.bubble a{color:var(--orange);text-decoration:underline}
+.typing{display:flex;gap:5px;align-items:center;padding:14px 18px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);width:fit-content;box-shadow:var(--card-shadow)}
+.typing span{width:7px;height:7px;background:var(--orange);border-radius:50%;animation:bounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-7px);opacity:1}}
+
+.welcome{text-align:center;padding:30px 20px}
+.welcome-emoji{font-size:56px;margin-bottom:16px;display:block}
+.welcome h2{font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px;color:var(--text)}
+.welcome h2 span{color:var(--orange)}
+.welcome p{font-size:13px;color:var(--muted);line-height:1.7;max-width:320px;margin:0 auto}
+.welcome-badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.welcome-badge{font-size:11px;padding:6px 12px;background:var(--orange-bg);color:var(--orange);border-radius:20px;font-weight:600}
+
+.input-area{flex-shrink:0;padding:10px 12px 14px;background:var(--card);border-top:1px solid var(--border);z-index:10;box-shadow:0 -2px 10px rgba(0,0,0,0.03)}
+.suggestions{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+.suggestions::-webkit-scrollbar{display:none}
+.suggestion{white-space:nowrap;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:20px;font-size:12.5px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0;transition:all 0.2s;font-weight:500}
+.suggestion:hover{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+.text-input{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:12px 16px;color:var(--text);font-family:'Inter',sans-serif;font-size:15px;outline:none;resize:none;line-height:1.4;min-height:46px;max-height:100px;transition:border-color 0.2s;-webkit-appearance:none}
+.text-input::placeholder{color:#B0B8C4}
+.text-input:focus{border-color:var(--orange)}
+.btn{width:46px;height:46px;border-radius:14px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+.btn-send{background:var(--orange);color:#fff;box-shadow:0 2px 8px rgba(249,115,22,0.3)}
+.btn-send:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+.btn-voice{background:var(--bg);border:1.5px solid var(--border);color:var(--muted)}
+.btn-voice.listening{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.4);color:var(--red);animation:vp 1s infinite}
+@keyframes vp{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.2)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.voice-status{text-align:center;font-size:11px;color:var(--muted);margin-top:6px;min-height:14px}
+.voice-status.active{color:var(--red)}
+
+/* RDV Form Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px;padding:24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto}
+.modal h3{font-family:'Outfit',sans-serif;font-size:18px;margin-bottom:4px;color:var(--text)}
+.modal .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+.form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;background:var(--bg)}
+.form-input:focus{border-color:var(--orange)}
+select.form-input{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.form-row{display:flex;gap:10px}
+.form-row .form-group{flex:1}
+.modal-btns{display:flex;gap:10px;margin-top:18px}
+.modal-btn{flex:1;padding:12px;border-radius:12px;border:none;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+.modal-btn-primary{background:var(--orange);color:white}
+.modal-btn-secondary{background:var(--bg);border:1.5px solid var(--border);color:var(--muted)}
+.confirmation-card{background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:14px;padding:16px;margin-top:8px}
+.confirmation-card h4{color:var(--green);font-size:14px;margin-bottom:8px}
+.confirmation-card p{font-size:13px;color:var(--text);line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- RDV MODAL -->
+<div class="modal-overlay" id="rdvModal">
+  <div class="modal">
+    <h3>Prendre rendez-vous</h3>
+    <div class="sub">Service a domicile Corner Mobile</div>
+    <div class="form-group">
+      <label>Votre nom</label>
+      <input class="form-input" id="rdvName" type="text" placeholder="Mohammed">
+    </div>
+    <div class="form-group">
+      <label>Telephone</label>
+      <input class="form-input" id="rdvPhone" type="tel" placeholder="+212 6XX XXX XXX">
+    </div>
+    <div class="form-group">
+      <label>Adresse</label>
+      <input class="form-input" id="rdvAddress" type="text" placeholder="Quartier, rue, ville">
+    </div>
+    <div class="form-group">
+      <label>Service souhaite</label>
+      <select class="form-input" id="rdvService">
+        <option value="">Choisir un service</option>
+        <option value="Remplacement ecran iPhone">Remplacement ecran iPhone (200-800 MAD)</option>
+        <option value="Remplacement ecran Samsung">Remplacement ecran Samsung (200-600 MAD)</option>
+        <option value="Remplacement batterie">Remplacement batterie (150-400 MAD)</option>
+        <option value="Transfert de donnees">Transfert de donnees (100-200 MAD)</option>
+        <option value="Configuration telephone neuf">Configuration telephone (50-100 MAD)</option>
+        <option value="Deblocage operateur">Deblocage operateur (100-300 MAD)</option>
+        <option value="Installation film protection">Film protection (50-150 MAD)</option>
+        <option value="Diagnostic complet">Diagnostic complet (50 MAD)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input class="form-input" id="rdvDate" type="date">
+      </div>
+      <div class="form-group">
+        <label>Heure</label>
+        <select class="form-input" id="rdvTime">
+          <option value="09:00">09:00</option>
+          <option value="10:00">10:00</option>
+          <option value="11:00">11:00</option>
+          <option value="12:00">12:00</option>
+          <option value="14:00">14:00</option>
+          <option value="15:00">15:00</option>
+          <option value="16:00">16:00</option>
+          <option value="17:00">17:00</option>
+          <option value="18:00">18:00</option>
+          <option value="19:00">19:00</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-secondary" onclick="closeRdvModal()">Annuler</button>
+      <button class="modal-btn modal-btn-primary" onclick="submitRdv()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📱</div>
+      <span>Corner</span>Mobile
+    </div>
+    <div class="header-right">
+      <div class="status-pill online" id="statusPill">
+        <div class="status-dot-sm"></div>
+        <span id="statusText">En ligne</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="messages" id="messages">
+    <div class="welcome">
+      <span class="welcome-emoji">👋</span>
+      <h2>Bienvenue chez <span>Corner Mobile</span> !</h2>
+      <p>Je suis votre assistant. Posez-moi vos questions sur nos telephones, reparations, et services a domicile !</p>
+      <div class="welcome-badges">
+        <span class="welcome-badge">Smartphones</span>
+        <span class="welcome-badge">Reparations</span>
+        <span class="welcome-badge">A domicile</span>
+        <span class="welcome-badge">Rabat</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="suggestions">
+      <div class="suggestion" onclick="quickSend('Quels iPhones vous avez ?')">iPhones dispo ?</div>
+      <div class="suggestion" onclick="quickSend('Vous faites les reparations ?')">Reparations ?</div>
+      <div class="suggestion" onclick="quickSend('Quels services a domicile ?')">A domicile</div>
+      <div class="suggestion" onclick="quickSend('Vous etes ou a Rabat ?')">Adresse ?</div>
+      <div class="suggestion" onclick="quickSend('Budget 2000 MAD')">Budget 2000</div>
+      <div class="suggestion" onclick="quickSend('Prendre rendez-vous')">RDV</div>
+    </div>
+    <div class="input-row">
+      <textarea class="text-input" id="textInput" placeholder="Posez votre question..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="btn btn-voice" id="voiceBtn" onclick="toggleVoice()">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" fill="currentColor"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="btn btn-send" id="sendBtn" onclick="sendMessage()">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="voice-status" id="voiceStatus"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CONFIG = {
+  CLAUDE_API_KEY: '',
+  CLAUDE_MODEL: 'claude-sonnet-4-20250514',
+  LOYVERSE_TOKEN: '',
+  GOOGLE_CLIENT_ID: '',
+  GOOGLE_CLIENT_SECRET: '',
+  PROXY_URL: 'https://corsproxy.io/?',
+  STORE_M1_ID: 'f8ed77ef-df1b-46b8-9e7d-edb2acadc720',
+  STORE_M2_ID: 'ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6',
+  WHATSAPP: '+212 XXX XXX XXX',
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let isLoading = false;
+let recognition = null;
+let isListening = false;
+let history = [];
+let cacheData = null;
+let reparations = null;
+let prestations = null;
+let loyverseItems = [];
+let googleToken = null;
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = async () => {
+  // Set min date for RDV to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('rdvDate').setAttribute('min', today);
+  document.getElementById('rdvDate').value = today;
+
+  // Check for Google OAuth callback
+  checkOAuthCallback();
+
+  // Load data
+  await Promise.all([loadCache(), loadReparations(), loadPrestations(), loadPublicCatalogue()]);
+
+  // Auto-greeting
+  setTimeout(() => {
+    addMsg('ai', 'Salam ! 👋 Bienvenue chez Corner Mobile ! Comment je peux vous aider ? Smartphones, reparations, services a domicile... je suis la pour vous ! 😊');
+  }, 600);
+};
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+async function loadCache() {
+  try {
+    const r = await fetch('cache.json');
+    if (r.ok) cacheData = await r.json();
+  } catch (e) { console.warn('cache.json not loaded'); }
+}
+
+async function loadReparations() {
+  try {
+    const r = await fetch('reparations.json');
+    if (r.ok) reparations = await r.json();
+  } catch (e) { console.warn('reparations.json not loaded'); }
+}
+
+async function loadPrestations() {
+  try {
+    const r = await fetch('prestations.json');
+    if (r.ok) prestations = await r.json();
+  } catch (e) { console.warn('prestations.json not loaded'); }
+}
+
+async function loadPublicCatalogue() {
+  setStatusPill('Chargement...', 'loading');
+  try {
+    let allItems = [];
+    let cursor = null;
+    let page = 0;
+    do {
+      let url = 'https://api.loyverse.com/v1.0/items?limit=250';
+      if (cursor) url += '&cursor=' + cursor;
+      const res = await fetch(CONFIG.PROXY_URL + encodeURIComponent(url), {
+        headers: { 'Authorization': 'Bearer ' + CONFIG.LOYVERSE_TOKEN }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.items) allItems = allItems.concat(data.items);
+      cursor = data.cursor || null;
+      page++;
+    } while (cursor && page < 10);
+    loyverseItems = allItems;
+    setStatusPill('En ligne', 'online');
+  } catch (e) {
+    console.warn('Loyverse load failed, using fallback:', e);
+    try {
+      const r = await fetch('catalogue.json');
+      if (r.ok) {
+        const cat = await r.json();
+        // Convert to simplified format
+        loyverseItems = (cat.appareils || []).filter(x => x.dispo).map(x => ({
+          item_name: x.nom,
+          description: x.description || '',
+          _price: x.prix,
+          _promo: x.prix_promo
+        }));
+      }
+    } catch (e2) {}
+    setStatusPill('En ligne', 'online');
+  }
+}
+
+function setStatusPill(text, type) {
+  const pill = document.getElementById('statusPill');
+  const label = document.getElementById('statusText');
+  pill.className = 'status-pill ' + type;
+  label.textContent = text;
+}
+
+// ============================================================
+// CACHE CHECK
+// ============================================================
+function checkCache(msg) {
+  if (!cacheData || !cacheData.entries) return null;
+  const lower = msg.toLowerCase();
+  for (const entry of cacheData.entries) {
+    for (const pattern of entry.patterns) {
+      if (lower.includes(pattern.toLowerCase())) {
+        return entry.a;
+      }
+    }
+  }
+  return null;
+}
+
+// ============================================================
+// BUILD PUBLIC CATALOGUE FOR CLAUDE (no cost prices, no per-store stock)
+// ============================================================
+function buildPublicCatalogue() {
+  if (loyverseItems.length === 0) return 'Catalogue non disponible pour le moment.';
+
+  const lines = loyverseItems.map(item => {
+    // For Loyverse items
+    if (item.variants) {
+      const v = item.variants[0] || {};
+      const stores = v.stores || [];
+      let minPrice = v.default_price || 0;
+      stores.forEach(s => {
+        if (s.available_for_sale && s.price !== null && s.price !== undefined) {
+          if (s.price < minPrice || minPrice === 0) minPrice = s.price;
+        }
+      });
+      if (minPrice === 0) return null;
+      return item.item_name + ' - ' + minPrice + ' MAD';
+    }
+    // For fallback catalogue items
+    if (item._price) {
+      const promo = item._promo && item._promo < item._price ? ' (PROMO: ' + item._promo + ' MAD !)' : '';
+      return item.item_name + ' - ' + item._price + ' MAD' + promo;
+    }
+    return null;
+  }).filter(Boolean);
+
+  return 'CATALOGUE (prix publics):\n' + lines.join('\n');
+}
+
+function buildRepairInfo() {
+  if (!reparations) return '';
+  const lines = [];
+  for (const [k, v] of Object.entries(reparations.reparations)) {
+    if (v.escalade) {
+      lines.push(v.label + ': sur devis apres diagnostic');
+    } else if (v.prix_min != null) {
+      lines.push(v.label + ': ' + v.prix_min + '-' + v.prix_max + ' MAD');
+    } else if (v.marques) {
+      for (const [m, d] of Object.entries(v.marques)) {
+        const arr = Array.isArray(d) ? d : (d.modeles || []);
+        arr.forEach(x => {
+          if (!x.escalade) lines.push(v.label + ' ' + m + ' ' + x.groupe + ': ' + x.prix_min + '-' + x.prix_max + ' MAD');
+        });
+      }
+    }
+  }
+  return lines.length > 0 ? '\nREPARATIONS:\n' + lines.join('\n') : '';
+}
+
+function buildServicesInfo() {
+  if (!prestations) return '';
+  const lines = prestations.services.map(s =>
+    s.name + ' | ' + s.price_range + ' | ' + s.duration + (s.at_home ? ' | A domicile' : ' | En boutique uniquement')
+  );
+  return '\nSERVICES A DOMICILE:\n' + lines.join('\n') +
+    '\nZones couvertes: ' + (prestations.zones_couvertes || []).join(', ') +
+    '\nHoraires: ' + (prestations.horaires || 'Lundi-Samedi 9h-20h') +
+    '\nDeplacement: ' + (prestations.frais_deplacement || 'Gratuit Rabat');
+}
+
+function buildClientSystemPrompt() {
+  const catalogue = buildPublicCatalogue();
+  const repairs = buildRepairInfo();
+  const services = buildServicesInfo();
+
+  return `Tu es l'assistant commercial en ligne de Corner Mobile, une boutique de smartphones a Rabat, Maroc.
+
+PERSONNALITE:
+- Chaleureux, drole, commercial, convaincant
+- Tu parles comme un vrai vendeur marocain sympathique
+- Tu utilises des emojis avec parcimonie mais efficacement
+- Ton style: "Pour vous je vous le laisse a X MAD 😉", "Wallah c'est le meilleur prix", "Vous allez pas regretter !"
+- Tu t'adaptes a la langue du client: Francais, Darija, Arabe - tu detectes et tu reponds pareil
+- Tu finis TOUJOURS par une invitation: venir en boutique OU contacter sur WhatsApp (${CONFIG.WHATSAPP})
+
+BOUTIQUES:
+- M1: Centre Commercial Ait Baha, Rabat
+- M2: Centre Commercial Oued Dahab (9isaria), Rabat
+- Horaires: Lundi-Samedi 9h-20h
+
+${catalogue}
+${repairs}
+${services}
+
+REGLES:
+1. Ne JAMAIS donner de prix de revient ou de marge
+2. Ne JAMAIS indiquer les niveaux de stock precis par magasin
+3. Si un produit est dans le catalogue, dis qu'il est disponible et donne le prix public
+4. Si un produit n'est pas dans le catalogue, dis "Je verifie pour vous" et propose des alternatives
+5. Pour les reparations: donne la fourchette de prix + "diagnostic gratuit en boutique"
+6. Pour les services a domicile: propose de prendre RDV (dis au client de cliquer sur le bouton RDV ou de donner ses infos)
+7. Reponses MAX 5 lignes - sois concis et percutant
+8. Si le client demande un RDV, collecte: nom, telephone, adresse, service souhaite, disponibilite
+9. Si on te demande des trucs hors sujet (politique, etc) - ramene la conversation aux telephones avec humour
+
+EXEMPLES:
+Client: "Chhal iPhone 14 ?"
+Toi: "iPhone 14 ? Pour vous mon ami, on l'a a 5200 MAD ! 📱 Un monstre de telephone, camera incroyable. Passez nous voir a Ait Baha ou envoyez-nous un message sur WhatsApp ${CONFIG.WHATSAPP} 😉"
+
+Client: "You have Samsung ?"
+Toi: "Yes! We have a great selection of Samsung phones! Galaxy S25 at 6000 MAD, Galaxy A-series starting from 1800 MAD... Come visit us or WhatsApp us at ${CONFIG.WHATSAPP} 📱"`;
+}
+
+// ============================================================
+// GOOGLE OAUTH (for Calendar)
+// ============================================================
+function checkOAuthCallback() {
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    googleToken = params.get('access_token');
+    localStorage.setItem('cm_google_token', googleToken);
+    window.location.hash = '';
+  } else {
+    googleToken = localStorage.getItem('cm_google_token');
+  }
+}
+
+function initiateGoogleAuth() {
+  const redirectUri = window.location.origin + window.location.pathname;
+  const scope = 'https://www.googleapis.com/auth/calendar.events';
+  const url = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + CONFIG.GOOGLE_CLIENT_ID +
+    '&redirect_uri=' + encodeURIComponent(redirectUri) +
+    '&response_type=token&scope=' + encodeURIComponent(scope);
+  window.location.href = url;
+}
+
+async function createCalendarEvent(rdvData) {
+  if (!googleToken) return { success: false, reason: 'no_auth' };
+
+  const startDate = new Date(rdvData.date + 'T' + rdvData.time + ':00');
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour
+
+  try {
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + googleToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        summary: 'Corner Mobile - ' + rdvData.service + ' - ' + rdvData.name,
+        description: 'Client: ' + rdvData.name + '\nTel: ' + rdvData.phone + '\nAdresse: ' + rdvData.address + '\nService: ' + rdvData.service,
+        start: { dateTime: startDate.toISOString(), timeZone: 'Africa/Casablanca' },
+        end: { dateTime: endDate.toISOString(), timeZone: 'Africa/Casablanca' },
+        location: rdvData.address,
+        reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 60 }] }
+      })
+    });
+
+    if (res.ok) {
+      const event = await res.json();
+      return { success: true, event };
+    } else {
+      const err = await res.json();
+      if (res.status === 401) {
+        localStorage.removeItem('cm_google_token');
+        googleToken = null;
+        return { success: false, reason: 'expired' };
+      }
+      return { success: false, reason: err.error?.message || 'API error' };
+    }
+  } catch (e) {
+    return { success: false, reason: e.message };
+  }
+}
+
+async function checkCalendarAvailability(date, time) {
+  if (!googleToken) return { available: true }; // assume available if no auth
+
+  const startDate = new Date(date + 'T' + time + ':00');
+  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+  try {
+    const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?' +
+      'timeMin=' + encodeURIComponent(startDate.toISOString()) +
+      '&timeMax=' + encodeURIComponent(endDate.toISOString()) +
+      '&singleEvents=true';
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': 'Bearer ' + googleToken }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { available: !data.items || data.items.length === 0 };
+    }
+  } catch (e) {}
+  return { available: true };
+}
+
+// ============================================================
+// RDV MODAL
+// ============================================================
+function openRdvModal() {
+  document.getElementById('rdvModal').classList.add('open');
+}
+function closeRdvModal() {
+  document.getElementById('rdvModal').classList.remove('open');
+}
+
+async function submitRdv() {
+  const name = document.getElementById('rdvName').value.trim();
+  const phone = document.getElementById('rdvPhone').value.trim();
+  const address = document.getElementById('rdvAddress').value.trim();
+  const service = document.getElementById('rdvService').value;
+  const date = document.getElementById('rdvDate').value;
+  const time = document.getElementById('rdvTime').value;
+
+  if (!name || !phone || !address || !service || !date) {
+    alert('Veuillez remplir tous les champs');
+    return;
+  }
+
+  closeRdvModal();
+
+  const rdvData = { name, phone, address, service, date, time };
+
+  // Check calendar availability
+  const avail = await checkCalendarAvailability(date, time);
+  if (!avail.available) {
+    addMsg('ai', 'Oups, ce creneau est deja pris ! 😅 Essayez un autre horaire. On est disponibles du Lundi au Samedi, 9h-20h.');
+    openRdvModal();
+    return;
+  }
+
+  // Try to create calendar event
+  const result = await createCalendarEvent(rdvData);
+
+  const dateFormatted = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  if (result.success) {
+    addMsg('ai', `Rendez-vous confirme ! ✅\n\n📋 ${service}\n👤 ${name}\n📞 ${phone}\n📍 ${address}\n📅 ${dateFormatted} a ${time}\n\nOn sera la, inch'Allah ! Si besoin de modifier, appelez-nous sur WhatsApp: ${CONFIG.WHATSAPP} 😊`);
+  } else {
+    // Even if calendar fails, still show confirmation
+    addMsg('ai', `Votre demande de rendez-vous est notee ! 📝\n\n📋 ${service}\n👤 ${name}\n📞 ${phone}\n📍 ${address}\n📅 ${dateFormatted} a ${time}\n\nNotre equipe vous confirmera par WhatsApp (${CONFIG.WHATSAPP}) dans les plus brefs delais ! 😊`);
+  }
+
+  // Log the RDV
+  logConversation('RDV', JSON.stringify(rdvData));
+}
+
+// ============================================================
+// CONVERSATION LOGGING
+// ============================================================
+function logConversation(userMsg, aiReply) {
+  try {
+    const logs = JSON.parse(localStorage.getItem('cm_client_logs') || '[]');
+    logs.push({
+      timestamp: new Date().toISOString(),
+      user: userMsg,
+      ai: aiReply
+    });
+    // Keep last 200 entries
+    if (logs.length > 200) logs.splice(0, logs.length - 200);
+    localStorage.setItem('cm_client_logs', JSON.stringify(logs));
+  } catch (e) {}
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+function addMsg(role, text) {
+  const c = document.getElementById('messages');
+  const w = c.querySelector('.welcome');
+  if (w) w.remove();
+  const m = document.createElement('div');
+  m.className = 'msg ' + role;
+  const lbl = document.createElement('div');
+  lbl.className = 'msg-label';
+  lbl.textContent = role === 'user' ? 'Vous' : 'Corner Mobile';
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  // Render markdown-like formatting
+  let html = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(\d{3,6}\s*MAD)/g, '<strong style="color:var(--orange)">$1</strong>')
+    .replace(/\n/g, '<br>');
+
+  // Make WhatsApp number clickable
+  html = html.replace(/(\+212\s*\d{3}\s*\d{3}\s*\d{3})/g, '<a href="https://wa.me/$1" target="_blank">$1</a>');
+
+  b.innerHTML = html;
+  m.appendChild(lbl);
+  m.appendChild(b);
+  c.appendChild(m);
+  c.scrollTop = c.scrollHeight;
+}
+
+function showTyping() {
+  const c = document.getElementById('messages');
+  const t = document.createElement('div');
+  t.className = 'msg ai';
+  t.id = 'typing';
+  t.innerHTML = '<div class="msg-label">Corner Mobile</div><div class="typing"><span></span><span></span><span></span></div>';
+  c.appendChild(t);
+  c.scrollTop = c.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
+
+// ============================================================
+// DETECT RDV INTENT
+// ============================================================
+function detectRdvIntent(msg) {
+  const lower = msg.toLowerCase();
+  const rdvPatterns = ['rendez-vous', 'rdv', 'reserver', 'booking', 'prendre rdv', 'domicile', 'chez moi', 'deplacement', 'venir chez', 'mji l', 'at home'];
+  return rdvPatterns.some(p => lower.includes(p));
+}
+
+// ============================================================
+// SEND MESSAGE
+// ============================================================
+async function sendMessage(text) {
+  const input = document.getElementById('textInput');
+  const msg = text || input.value.trim();
+  if (!msg || isLoading) return;
+  input.value = '';
+  autoResize(input);
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  setStatusPill('Reflexion...', 'loading');
+  addMsg('user', msg);
+
+  // Check if user wants RDV
+  if (detectRdvIntent(msg)) {
+    setTimeout(() => {
+      addMsg('ai', 'Super idee ! 🏠 On se deplace chez vous a Rabat, Sale et Temara.\n\nCliquez ci-dessous pour prendre rendez-vous, ou donnez-moi vos infos (nom, telephone, adresse, service) et je m\'en occupe ! 😊');
+      openRdvModal();
+      isLoading = false;
+      document.getElementById('sendBtn').disabled = false;
+      setStatusPill('En ligne', 'online');
+    }, 500);
+    logConversation(msg, '[RDV Modal opened]');
+    return;
+  }
+
+  // Check cache first
+  const cached = checkCache(msg);
+  if (cached) {
+    setTimeout(() => {
+      addMsg('ai', cached);
+      isLoading = false;
+      document.getElementById('sendBtn').disabled = false;
+      setStatusPill('En ligne', 'online');
+    }, 300 + Math.random() * 400);
+    logConversation(msg, cached);
+    history.push({ role: 'user', content: msg });
+    history.push({ role: 'assistant', content: cached });
+    return;
+  }
+
+  // Call Claude API
+  history.push({ role: 'user', content: msg });
+  showTyping();
+
+  try {
+    const claudeUrl = CONFIG.PROXY_URL + encodeURIComponent('https://api.anthropic.com/v1/messages');
+    const res = await fetch(claudeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CONFIG.CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: CONFIG.CLAUDE_MODEL,
+        max_tokens: 500,
+        system: buildClientSystemPrompt(),
+        messages: history.slice(-12)
+      })
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (data.error) {
+      addMsg('ai', 'Petit souci technique ! 😅 Contactez-nous directement sur WhatsApp: ' + CONFIG.WHATSAPP);
+      setStatusPill('En ligne', 'online');
+    } else {
+      const reply = data.content[0].text;
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > 16) history = history.slice(-12);
+      addMsg('ai', reply);
+      logConversation(msg, reply);
+      setStatusPill('En ligne', 'online');
+    }
+  } catch (e) {
+    removeTyping();
+    addMsg('ai', 'Oups, probleme de connexion ! 😅 Contactez-nous sur WhatsApp: ' + CONFIG.WHATSAPP);
+    setStatusPill('En ligne', 'online');
+  }
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function quickSend(t) { document.getElementById('textInput').value = t; sendMessage(); }
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+
+// ============================================================
+// VOICE INPUT
+// ============================================================
+function toggleVoice() { isListening ? stopVoice() : startVoice(); }
+
+function startVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    document.getElementById('voiceStatus').textContent = 'Vocal non supporte';
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'fr-FR';
+  recognition.interimResults = true;
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('voiceBtn').classList.add('listening');
+    document.getElementById('voiceStatus').textContent = "J'ecoute...";
+    document.getElementById('voiceStatus').classList.add('active');
+  };
+  recognition.onresult = (e) => {
+    const t = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('textInput').value = t;
+    if (e.results[0].isFinal) { stopVoice(); sendMessage(); }
+  };
+  recognition.onerror = () => stopVoice();
+  recognition.onend = () => stopVoice();
+  recognition.start();
+}
+
+function stopVoice() {
+  isListening = false;
+  if (recognition) recognition.stop();
+  document.getElementById('voiceBtn').classList.remove('listening');
+  document.getElementById('voiceStatus').textContent = '';
+  document.getElementById('voiceStatus').classList.remove('active');
+}
+</script>
+</body>
+</html>

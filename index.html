@@ -2,14 +2,28 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Corner Mobile — Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080c0f">
+<title>Corner Mobile - Assistant Vendeur</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--blue:#2AA8DC;--green:#5BBF3E;--dark:#080c0f;--card:#131b21;--border:rgba(42,168,220,0.12);--text:#e2eaf0;--muted:#4a6070}
+:root{--blue:#2AA8DC;--green:#5BBF3E;--dark:#080c0f;--card:#131b21;--border:rgba(42,168,220,0.12);--text:#e2eaf0;--muted:#4a6070;--red:#DC3C2A;--yellow:#f59e0b}
 html,body{height:100%;background:var(--dark);color:var(--text);font-family:'DM Mono',monospace}
+.lock-screen{position:fixed;inset:0;z-index:9999;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px}
+.lock-screen.hidden{display:none}
+.lock-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800}
+.lock-logo .c1{color:var(--blue)}.lock-logo .c2{color:var(--green)}
+.lock-sub{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+.lock-input{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;color:var(--text);font-family:'DM Mono',monospace;font-size:16px;width:min(300px,80vw);text-align:center;outline:none}
+.lock-input:focus{border-color:rgba(42,168,220,0.5)}
+.lock-btn{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:14px 40px;font-family:'DM Mono',monospace;font-size:14px;cursor:pointer;font-weight:500}
+.lock-error{color:var(--red);font-size:12px;min-height:18px}
 .app{display:flex;flex-direction:column;height:100dvh;max-height:-webkit-fill-available;overflow:hidden;position:fixed;inset:0}
+.app.locked{display:none}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(42,168,220,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(42,168,220,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(8,12,15,0.97);flex-shrink:0}
 .logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
@@ -17,11 +31,12 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 .header-right{display:flex;align-items:center;gap:10px}
 .status{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-.status-dot.loading{background:#f59e0b;animation:pulse 0.5s infinite}
-.status-dot.error{background:#DC3C2A;animation:none}
+.status-dot.loading{background:var(--yellow);animation:pulse 0.5s infinite}
+.status-dot.error{background:var(--red);animation:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 .btn-settings{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 9px;color:var(--muted);cursor:pointer;font-size:14px}
-.drawer{position:fixed;top:0;right:-105%;width:min(300px,90vw);height:100%;background:#0b1014;border-left:1px solid var(--border);z-index:200;padding:20px;transition:right 0.3s ease;overflow-y:auto}
+.stock-badge{font-size:10px;background:rgba(91,191,62,0.15);color:var(--green);padding:3px 8px;border-radius:10px;border:1px solid rgba(91,191,62,0.25)}
+.drawer{position:fixed;top:0;right:-105%;width:min(320px,92vw);height:100%;background:#0b1014;border-left:1px solid var(--border);z-index:200;padding:20px;transition:right 0.3s ease;overflow-y:auto}
 .drawer.open{right:0}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:199}
 .overlay.open{display:block}
@@ -32,8 +47,9 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 .d-btn{width:100%;padding:10px;border-radius:6px;border:none;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;margin-bottom:6px}
 .d-btn-p{background:var(--blue);color:#fff}
 .d-btn-s{background:var(--card);border:1px solid var(--border);color:var(--muted)}
+.d-btn-d{background:rgba(220,60,42,0.1);border:1px solid rgba(220,60,42,0.3);color:var(--red)}
 .d-status{font-size:11px;margin-top:6px;min-height:16px}
-.d-status.ok{color:var(--green)}.d-status.err{color:#DC3C2A}
+.d-status.ok{color:var(--green)}.d-status.err{color:var(--red)}
 .kb-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:11px}
 .kb-s.ok{color:var(--green)}.kb-s.miss{color:var(--muted)}
 .toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:11px}
@@ -50,9 +66,14 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .msg.user{align-items:flex-end}.msg.ai{align-items:flex-start}
 .msg-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:0 4px}
-.bubble{max-width:88%;padding:11px 14px;font-size:14px;line-height:1.6}
+.bubble{max-width:88%;padding:11px 14px;font-size:14px;line-height:1.6;word-break:break-word}
 .msg.user .bubble{background:rgba(42,168,220,0.13);border:1px solid rgba(42,168,220,0.28);border-radius:14px 14px 4px 14px;color:#c8e8f5}
 .msg.ai .bubble{background:var(--card);border:1px solid var(--border);border-radius:14px 14px 14px 4px;color:var(--text)}
+.bubble table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+.bubble th,.bubble td{padding:4px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.bubble th{color:var(--blue);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.bubble .price{color:var(--blue);font-weight:bold}
+.bubble .stock-yes{color:var(--green)}.bubble .stock-no{color:var(--red)}
 .typing{display:flex;gap:5px;align-items:center;padding:13px 15px;background:var(--card);border:1px solid var(--border);border-radius:14px;width:fit-content}
 .typing span{width:6px;height:6px;background:var(--blue);border-radius:50%;animation:bounce 1.2s infinite}
 .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
@@ -60,80 +81,113 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 .input-area{flex-shrink:0;padding:10px 12px 12px;border-top:1px solid var(--border);background:rgba(8,12,15,0.99);z-index:10;position:relative}
 .suggestions{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
 .suggestions::-webkit-scrollbar{display:none}
-.suggestion{white-space:nowrap;padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;flex-shrink:0}
+.suggestion{white-space:nowrap;padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;flex-shrink:0;transition:all 0.2s}
+.suggestion:hover{border-color:rgba(42,168,220,0.4);color:var(--text)}
 .input-row{display:flex;gap:8px;align-items:flex-end}
 .text-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:15px;outline:none;resize:none;line-height:1.4;min-height:46px;max-height:100px;transition:border-color 0.2s;-webkit-appearance:none}
 .text-input::placeholder{color:var(--muted)}
 .text-input:focus{border-color:rgba(42,168,220,0.4)}
-.btn{width:46px;height:46px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn{width:46px;height:46px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
 .btn-send{background:var(--blue);color:#fff}
-.btn-send:disabled{opacity:0.4}
+.btn-send:disabled{opacity:0.4;cursor:not-allowed}
 .btn-voice{background:var(--card);border:1px solid var(--border);color:var(--muted)}
-.btn-voice.listening{background:rgba(220,42,42,0.12);border-color:rgba(220,42,42,0.4);color:#DC2A2A;animation:vp 1s infinite}
+.btn-voice.listening{background:rgba(220,42,42,0.12);border-color:rgba(220,42,42,0.4);color:var(--red);animation:vp 1s infinite}
 @keyframes vp{0%,100%{box-shadow:0 0 0 0 rgba(220,42,42,0.3)}50%{box-shadow:0 0 0 8px rgba(220,42,42,0)}}
 .voice-status{text-align:center;font-size:11px;color:var(--muted);margin-top:6px;min-height:14px}
-.voice-status.active{color:#DC2A2A}
+.voice-status.active{color:var(--red)}
 .welcome{text-align:center;padding:30px 20px}
 .welcome-icon{font-size:44px;margin-bottom:14px;display:block}
-.welcome h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,var(--blue),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.welcome h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,var(--blue),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .welcome p{font-size:12px;color:var(--muted);line-height:1.7}
+.store-switcher{display:flex;gap:4px;margin-top:12px;justify-content:center}
+.store-tab{padding:4px 10px;border-radius:12px;font-size:10px;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;font-family:'DM Mono',monospace}
+.store-tab.active{background:rgba(42,168,220,0.15);border-color:rgba(42,168,220,0.4);color:var(--blue)}
 </style>
 </head>
 <body>
+
+<!-- PASSWORD LOCK SCREEN -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-logo"><span class="c1">Corner</span><span class="c2">Mobile</span></div>
+  <div class="lock-sub">Assistant Vendeur</div>
+  <input class="lock-input" id="lockPass" type="password" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkPassword()">
+  <button class="lock-btn" onclick="checkPassword()">Entrer</button>
+  <div class="lock-error" id="lockError"></div>
+</div>
+
+<!-- SETTINGS DRAWER -->
 <div class="overlay" id="overlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="drawer">
-  <h3>⚙️ Paramètres</h3>
+  <h3>Parametres</h3>
   <div class="d-section">
-    <div class="d-label">Clé API Claude</div>
-    <input class="d-input" id="apiKeyInput" type="password" placeholder="sk-ant-api03-..."/>
-    <button class="d-btn d-btn-p" onclick="saveApiKey()">Sauvegarder</button>
-    <div class="d-status" id="keyStatus"></div>
+    <div class="d-label">Stock Loyverse</div>
+    <div class="kb-item"><span>M1 Ait Baha</span><span class="kb-s" id="s-m1">...</span></div>
+    <div class="kb-item"><span>M2 Oued Dahab</span><span class="kb-s" id="s-m2">...</span></div>
+    <div class="kb-item"><span>Total articles</span><span class="kb-s" id="s-total">...</span></div>
+    <button class="d-btn d-btn-p" onclick="loadLoyverseStock()">Recharger stock Loyverse</button>
+    <div class="d-status" id="stockStatus"></div>
   </div>
   <div class="d-section">
-    <div class="d-label">Knowledge Base</div>
-    <div class="kb-item"><span>📦 catalogue.json</span><span class="kb-s" id="s-cat">⏳</span></div>
-    <div class="kb-item"><span>🔧 reparations.json</span><span class="kb-s" id="s-rep">⏳</span></div>
-    <button class="d-btn d-btn-s" onclick="reloadKnowledge()">↺ Recharger</button>
+    <div class="d-label">Knowledge Base locale</div>
+    <div class="kb-item"><span>catalogue.json (fallback)</span><span class="kb-s" id="s-cat">...</span></div>
+    <div class="kb-item"><span>reparations.json</span><span class="kb-s" id="s-rep">...</span></div>
+    <button class="d-btn d-btn-s" onclick="loadLocalKnowledge()">Recharger fichiers locaux</button>
     <div class="d-status" id="kbStatus"></div>
   </div>
   <div class="d-section">
-    <div class="d-label">Réponse vocale</div>
+    <div class="d-label">Google Sheets Logging</div>
+    <div class="d-input" style="font-size:10px;color:var(--muted);padding:8px">Les conversations sont loguees automatiquement dans Google Sheets (si configure).</div>
+    <input class="d-input" id="sheetIdInput" type="text" placeholder="ID du Google Sheet" value="">
+    <button class="d-btn d-btn-s" onclick="saveSheetId()">Sauvegarder Sheet ID</button>
+    <div class="d-status" id="sheetStatus"></div>
+  </div>
+  <div class="d-section">
+    <div class="d-label">Reponse vocale</div>
     <div class="toggle-wrap">
-      <span>🔊 Lire les réponses à voix haute</span>
+      <span>Lire les reponses a voix haute</span>
       <label class="toggle">
         <input type="checkbox" id="voiceReplyToggle" onchange="saveVoicePref(this.checked)">
         <span class="toggle-slider"></span>
       </label>
     </div>
-    <div style="font-size:10px;color:var(--muted);padding:0 4px">Désactivé par défaut — active pour mode boutique</div>
+    <div style="font-size:10px;color:var(--muted);padding:0 4px">Desactive par defaut</div>
   </div>
   <div class="d-section">
-    <button class="d-btn d-btn-s" onclick="clearHistory()">🗑 Vider conversation</button>
+    <button class="d-btn d-btn-d" onclick="clearHistory()">Vider conversation</button>
   </div>
-  <button class="d-btn d-btn-s" onclick="closeDrawer()">✕ Fermer</button>
+  <button class="d-btn d-btn-s" onclick="closeDrawer()">Fermer</button>
 </div>
-<div class="app">
+
+<!-- MAIN APP -->
+<div class="app locked" id="app">
   <header>
-    <div class="logo"><span class="c1">Corner</span><span class="c2">Mobile</span></div>
+    <div class="logo"><span class="c1">Corner</span><span class="c2">Mobile</span> <span style="font-size:11px;color:var(--muted);font-weight:400">vendeur</span></div>
     <div class="header-right">
-      <div class="status"><div class="status-dot" id="statusDot"></div><span id="statusText">Prêt</span></div>
-      <button class="btn-settings" onclick="openDrawer()">⚙️</button>
+      <span class="stock-badge" id="stockBadge">Stock: --</span>
+      <div class="status"><div class="status-dot" id="statusDot"></div><span id="statusText">Pret</span></div>
+      <button class="btn-settings" onclick="openDrawer()">&#9881;</button>
     </div>
   </header>
   <div class="messages" id="messages">
     <div class="welcome">
       <span class="welcome-icon">📱</span>
       <h2>Assistant Corner Mobile</h2>
-      <p>Pose ta question en vocal ou par écrit.<br>Stock · Prix · Réparation — réponse immédiate.</p>
+      <p>Pose ta question en vocal ou par ecrit.<br>Stock Loyverse en temps reel - Prix par magasin - Reparations</p>
+      <div class="store-switcher">
+        <button class="store-tab active" data-store="all" onclick="switchStore('all',this)">Tous</button>
+        <button class="store-tab" data-store="m1" onclick="switchStore('m1',this)">M1 Ait Baha</button>
+        <button class="store-tab" data-store="m2" onclick="switchStore('m2',this)">M2 Oued Dahab</button>
+      </div>
     </div>
   </div>
   <div class="input-area">
     <div class="suggestions">
-      <div class="suggestion" onclick="quickSend('iPhone 13 dispo ?')">iPhone 13 dispo ?</div>
-      <div class="suggestion" onclick="quickSend('Prix écran iPhone 12')">Écran iPhone 12</div>
-      <div class="suggestion" onclick="quickSend('Batterie Samsung A54 ?')">Batterie A54</div>
-      <div class="suggestion" onclick="quickSend('J\'ai un budget 3000 MAD')">Budget 3000 MAD</div>
-      <div class="suggestion" onclick="quickSend('Compare iPhone 13 et 14')">iPhone 13 vs 14</div>
+      <div class="suggestion" onclick="quickSend('Qu\'est-ce qu\'on a en stock ?')">Stock complet</div>
+      <div class="suggestion" onclick="quickSend('iPhone dispo ?')">iPhone dispo ?</div>
+      <div class="suggestion" onclick="quickSend('Samsung en stock ?')">Samsung ?</div>
+      <div class="suggestion" onclick="quickSend('Budget 3000 MAD')">Budget 3000</div>
+      <div class="suggestion" onclick="quickSend('Prix ecran iPhone 13')">Ecran iPhone 13</div>
+      <div class="suggestion" onclick="quickSend('Compare les iPhone en stock')">Comparer</div>
     </div>
     <div class="input-row">
       <textarea class="text-input" id="textInput" placeholder="Pose ta question ici..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
@@ -147,207 +201,498 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
     <div class="voice-status" id="voiceStatus"></div>
   </div>
 </div>
-<script>
-let apiKey=localStorage.getItem('cm_api_key')||'';
-let isLoading=false,recognition=null,isListening=false;
-let history=[],catalogue=null,reparations=null;
 
-window.onload=async()=>{
-  if(apiKey)document.getElementById('apiKeyInput').value=apiKey;
-  loadVoicePref();
-  await loadKnowledge();
+<script>
+// ============================================================
+// CONFIG - Change these values or set up a Cloudflare Worker proxy
+// ============================================================
+const CONFIG = {
+  PASSWORD: 'corner2026',
+  CLAUDE_API_KEY: '',
+  CLAUDE_MODEL: 'claude-sonnet-4-20250514',
+  LOYVERSE_TOKEN: '',
+  GOOGLE_CLIENT_ID: '',
+  GOOGLE_CLIENT_SECRET: '',
+  // CORS proxy - change to your Cloudflare Worker URL when deployed
+  PROXY_URL: 'https://corsproxy.io/?',
+  // Loyverse store IDs
+  STORE_M1_ID: 'f8ed77ef-df1b-46b8-9e7d-edb2acadc720', // Ait Baha
+  STORE_M2_ID: 'ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6', // Oued Dahab
+  // Google Sheet ID for logging (set in settings)
+  SHEET_ID: '',
 };
 
-function setStatus(t,type){
-  const dot=document.getElementById('statusDot');
-  const lbl=document.getElementById('statusText');
-  dot.className='status-dot';
-  if(type==='loading')dot.classList.add('loading');
-  if(type==='error')dot.classList.add('error');
-  lbl.textContent=t;
-}
+// ============================================================
+// STATE
+// ============================================================
+let isLoading = false;
+let recognition = null;
+let isListening = false;
+let history = [];
+let loyverseItems = [];
+let catalogue = null;
+let reparations = null;
+let activeStoreFilter = 'all';
 
-async function loadKnowledge(){
-  setStatus('Chargement...','loading');let ok=0;
-  try{const r=await fetch('catalogue.json');if(!r.ok)throw 0;catalogue=await r.json();document.getElementById('s-cat').textContent='✅';document.getElementById('s-cat').className='kb-s ok';ok++;}
-  catch{document.getElementById('s-cat').textContent='❌';document.getElementById('s-cat').className='kb-s miss';}
-  try{const r=await fetch('reparations.json');if(!r.ok)throw 0;reparations=await r.json();document.getElementById('s-rep').textContent='✅';document.getElementById('s-rep').className='kb-s ok';ok++;}
-  catch{document.getElementById('s-rep').textContent='❌';document.getElementById('s-rep').className='kb-s miss';}
-  const ks=document.getElementById('kbStatus');
-  if(ok===2){setStatus('Prêt','ok');ks.className='d-status ok';ks.textContent='✅ Fichiers chargés';}
-  else{setStatus('Prêt','ok');ks.className='d-status err';ks.textContent=`⚠️ ${ok}/2 fichiers chargés`;}
-}
-
-function reloadKnowledge(){catalogue=null;reparations=null;loadKnowledge();}
-
-function buildPrompt(){
-  let cat='',rep='';
-
-  if(catalogue){
-    const a=catalogue.appareils.filter(x=>x.dispo&&x.prix).map(x=>{
-      const promo=x.prix_promo&&x.prix_promo<x.prix?` | PROMO:${x.prix_promo} MAD`:'';
-      const urgence=x.stock===1?' | ⚠️ DERNIER EN STOCK':'';
-      const boutique=x.store==='Rabat'?'Aït Baha':x.store==='Casablanca'?'Oued Dahab':x.store;
-      return `${x.nom} | ${x.prix} MAD${promo} | ${boutique}${urgence} | stock:${x.stock}`;
-    }).join('\n');
-    cat=`STOCK DISPONIBLE (UNIQUEMENT CES PRODUITS — ne jamais inventer):\n${a}`;
+// ============================================================
+// PASSWORD
+// ============================================================
+function checkPassword() {
+  const pass = document.getElementById('lockPass').value;
+  if (pass === CONFIG.PASSWORD) {
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('locked');
+    sessionStorage.setItem('cm_auth', '1');
+    initApp();
   } else {
-    cat='STOCK: fichier non chargé — réponds uniquement "Je vérifie le stock, une seconde ⏳"';
+    document.getElementById('lockError').textContent = 'Mot de passe incorrect';
+    document.getElementById('lockPass').value = '';
+  }
+}
+
+window.onload = () => {
+  if (sessionStorage.getItem('cm_auth') === '1') {
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('locked');
+    initApp();
+  }
+  document.getElementById('lockPass').focus();
+};
+
+async function initApp() {
+  loadVoicePref();
+  CONFIG.SHEET_ID = localStorage.getItem('cm_sheet_id') || '';
+  document.getElementById('sheetIdInput').value = CONFIG.SHEET_ID;
+  await Promise.all([loadLoyverseStock(), loadLocalKnowledge()]);
+}
+
+// ============================================================
+// STATUS
+// ============================================================
+function setStatus(t, type) {
+  const dot = document.getElementById('statusDot');
+  const lbl = document.getElementById('statusText');
+  dot.className = 'status-dot';
+  if (type === 'loading') dot.classList.add('loading');
+  if (type === 'error') dot.classList.add('error');
+  lbl.textContent = t;
+}
+
+// ============================================================
+// LOYVERSE API - Fetch all items with store-level data
+// ============================================================
+async function loadLoyverseStock() {
+  setStatus('Stock...', 'loading');
+  document.getElementById('stockStatus').textContent = 'Chargement du stock Loyverse...';
+  document.getElementById('stockStatus').className = 'd-status';
+
+  try {
+    let allItems = [];
+    let cursor = null;
+    let page = 0;
+
+    // Paginate through all items
+    do {
+      let url = 'https://api.loyverse.com/v1.0/items?limit=250';
+      if (cursor) url += '&cursor=' + cursor;
+
+      const res = await fetch(CONFIG.PROXY_URL + encodeURIComponent(url), {
+        headers: { 'Authorization': 'Bearer ' + CONFIG.LOYVERSE_TOKEN }
+      });
+
+      if (!res.ok) throw new Error('Loyverse API: ' + res.status);
+      const data = await res.json();
+      if (data.items) allItems = allItems.concat(data.items);
+      cursor = data.cursor || null;
+      page++;
+    } while (cursor && page < 10);
+
+    loyverseItems = allItems;
+
+    // Count items per store
+    let m1Count = 0, m2Count = 0;
+    loyverseItems.forEach(item => {
+      if (!item.variants || !item.variants[0]) return;
+      const stores = item.variants[0].stores || [];
+      stores.forEach(s => {
+        if (s.store_id === CONFIG.STORE_M1_ID && s.available_for_sale) m1Count++;
+        if (s.store_id === CONFIG.STORE_M2_ID && s.available_for_sale) m2Count++;
+      });
+    });
+
+    document.getElementById('s-m1').textContent = m1Count + ' items';
+    document.getElementById('s-m1').className = 'kb-s ok';
+    document.getElementById('s-m2').textContent = m2Count + ' items';
+    document.getElementById('s-m2').className = 'kb-s ok';
+    document.getElementById('s-total').textContent = loyverseItems.length + ' total';
+    document.getElementById('s-total').className = 'kb-s ok';
+    document.getElementById('stockBadge').textContent = 'Stock: ' + loyverseItems.length;
+    document.getElementById('stockStatus').textContent = 'Stock charge: ' + loyverseItems.length + ' articles';
+    document.getElementById('stockStatus').className = 'd-status ok';
+    setStatus('Pret', 'ok');
+  } catch (e) {
+    console.error('Loyverse error:', e);
+    document.getElementById('s-m1').textContent = 'Erreur';
+    document.getElementById('s-m1').className = 'kb-s miss';
+    document.getElementById('s-m2').textContent = 'Erreur';
+    document.getElementById('s-m2').className = 'kb-s miss';
+    document.getElementById('stockStatus').textContent = 'Erreur: ' + e.message + ' - Fallback catalogue.json';
+    document.getElementById('stockStatus').className = 'd-status err';
+    document.getElementById('stockBadge').textContent = 'Stock: local';
+    setStatus('Fallback', 'error');
+  }
+}
+
+// ============================================================
+// LOCAL KNOWLEDGE (fallback catalogue + reparations)
+// ============================================================
+async function loadLocalKnowledge() {
+  let ok = 0;
+  try {
+    const r = await fetch('catalogue.json');
+    if (!r.ok) throw 0;
+    catalogue = await r.json();
+    document.getElementById('s-cat').textContent = 'OK';
+    document.getElementById('s-cat').className = 'kb-s ok';
+    ok++;
+  } catch {
+    document.getElementById('s-cat').textContent = 'N/A';
+    document.getElementById('s-cat').className = 'kb-s miss';
+  }
+  try {
+    const r = await fetch('reparations.json');
+    if (!r.ok) throw 0;
+    reparations = await r.json();
+    document.getElementById('s-rep').textContent = 'OK';
+    document.getElementById('s-rep').className = 'kb-s ok';
+    ok++;
+  } catch {
+    document.getElementById('s-rep').textContent = 'N/A';
+    document.getElementById('s-rep').className = 'kb-s miss';
+  }
+  const ks = document.getElementById('kbStatus');
+  ks.textContent = ok + '/2 fichiers charges';
+  ks.className = ok === 2 ? 'd-status ok' : 'd-status err';
+}
+
+// ============================================================
+// BUILD STOCK STRING FOR CLAUDE
+// ============================================================
+function buildStockData() {
+  // Prefer Loyverse live data
+  if (loyverseItems.length > 0) {
+    const lines = loyverseItems.map(item => {
+      const name = item.item_name || 'Sans nom';
+      const desc = item.description || '';
+      const v = item.variants && item.variants[0] ? item.variants[0] : {};
+      const defaultPrice = v.default_price || 0;
+      const stores = v.stores || [];
+
+      let m1info = 'Non dispo';
+      let m2info = 'Non dispo';
+
+      stores.forEach(s => {
+        const price = s.price !== null && s.price !== undefined ? s.price : defaultPrice;
+        if (s.store_id === CONFIG.STORE_M1_ID) {
+          m1info = s.available_for_sale ? (price + ' MAD - En stock') : 'Non dispo';
+        }
+        if (s.store_id === CONFIG.STORE_M2_ID) {
+          m2info = s.available_for_sale ? (price + ' MAD - En stock') : 'Non dispo';
+        }
+      });
+
+      // Filter by store if needed
+      if (activeStoreFilter === 'm1' && m1info === 'Non dispo') return null;
+      if (activeStoreFilter === 'm2' && m2info === 'Non dispo') return null;
+
+      return name + ' | ' + desc.substring(0, 80) + ' | M1(Ait Baha): ' + m1info + ' | M2(Oued Dahab): ' + m2info;
+    }).filter(Boolean);
+
+    return 'STOCK EN TEMPS REEL (Loyverse - ' + loyverseItems.length + ' articles, ' + lines.length + ' affiches):\n' + lines.join('\n');
   }
 
-  if(reparations){
-    const lines=[];
-    for(const[k,v]of Object.entries(reparations.reparations)){
-      if(v.escalade)lines.push(`${v.label}: diagnostic spécialisé en boutique`);
-      else if(v.prix_min!=null)lines.push(`${v.label}: ${v.prix_min}–${v.prix_max} MAD`);
-      else if(v.marques)for(const[m,d]of Object.entries(v.marques)){
-        const arr=Array.isArray(d)?d:(d.modeles||[]);
-        arr.forEach(x=>{if(!x.escalade)lines.push(`${v.label} ${m} ${x.groupe}: ${x.prix_min}–${x.prix_max} MAD`);});
+  // Fallback to catalogue.json
+  if (catalogue && catalogue.appareils) {
+    const lines = catalogue.appareils.filter(x => x.dispo && x.prix).map(x => {
+      const promo = x.prix_promo && x.prix_promo < x.prix ? ' | PROMO:' + x.prix_promo + ' MAD' : '';
+      const urgence = x.stock === 1 ? ' | DERNIER EN STOCK' : '';
+      return x.nom + ' | ' + x.prix + ' MAD' + promo + ' | stock:' + x.stock + urgence;
+    });
+    return 'STOCK LOCAL (catalogue.json - pas de donnees temps reel):\n' + lines.join('\n');
+  }
+
+  return 'STOCK: Non disponible - reponds "Je verifie le stock, une seconde"';
+}
+
+function buildRepairData() {
+  if (!reparations) return '';
+  const lines = [];
+  for (const [k, v] of Object.entries(reparations.reparations)) {
+    if (v.escalade) {
+      lines.push(v.label + ': diagnostic specialise en boutique');
+    } else if (v.prix_min != null) {
+      lines.push(v.label + ': ' + v.prix_min + '-' + v.prix_max + ' MAD');
+    } else if (v.marques) {
+      for (const [m, d] of Object.entries(v.marques)) {
+        const arr = Array.isArray(d) ? d : (d.modeles || []);
+        arr.forEach(x => {
+          if (!x.escalade) lines.push(v.label + ' ' + m + ' ' + x.groupe + ': ' + x.prix_min + '-' + x.prix_max + ' MAD');
+        });
       }
     }
-    rep=`RÉPARATIONS (fourchettes — prix confirmé après diagnostic gratuit):\n${lines.join('\n')}`;
   }
-
-  return `Tu es Hamid, l'assistant commercial de Corner Mobile — deux boutiques à Rabat :
-- Aït Baha (Centre Commercial Aït Baha)
-- Oued Dahab (Centre Commercial Oued Dahab)
-
-${cat}
-
-${rep}
-
-RÈGLES ABSOLUES:
-1. Tu ne parles QUE des produits dans le stock ci-dessus. Zéro invention.
-2. Si produit non disponible → propose immédiatement 2-3 alternatives cohérentes du stock (même gamme, prix proche).
-3. Réponses MAX 3 lignes — tu parles à un vendeur face à un client, chaque seconde compte.
-4. Tu es un vrai commercial — ton objectif est de VENDRE. Crée l'envie, mentionne les promos, signale le dernier en stock.
-5. Détecte la langue (Français / Darija / Arabe) et réponds dans la même langue naturellement.
-6. Pour les réparations → donne la fourchette + "diagnostic gratuit en boutique".
-7. Ton ton : direct, chaleureux, efficace. Jamais corporate.
-
-EXEMPLES DE BONNES RÉPONSES:
-Q: "iPhone 13 dispo ?" → "✅ Oui — iPhone 13 128Go | 4200 MAD | Aït Baha | stock:1 ⚠️ Dernier dispo !"
-Q: "wach kayn Samsung bon marché ?" → "✅ Ih — Samsung A34 | 1800 MAD | Aït Baha, ou Redmi Note 12 | 1600 MAD — les deux neufs 🔥"
-Q: "iPhone 11 kayn ?" (pas en stock) → "❌ iPhone 11 machi kayn — walakin 3andna iPhone 12 b 2800 MAD, beaucoup mieux pour presque le même prix 👌"
-Q: "budget 3000 MAD" → liste les 3 meilleures options dans ce budget depuis le stock`;
+  return lines.length > 0 ? '\nREPARATIONS (fourchettes - prix confirme apres diagnostic gratuit):\n' + lines.join('\n') : '';
 }
 
-function saveApiKey(){
-  const v=document.getElementById('apiKeyInput').value.trim();
-  const s=document.getElementById('keyStatus');
-  if(v.startsWith('sk-ant')){apiKey=v;localStorage.setItem('cm_api_key',v);s.className='d-status ok';s.textContent='✅ Sauvegardée';setStatus('Prêt','ok');}
-  else{s.className='d-status err';s.textContent='❌ Format invalide';}
+function buildSystemPrompt() {
+  const stock = buildStockData();
+  const repairs = buildRepairData();
+
+  return `Tu es l'assistant IA interne de Corner Mobile, reserve aux VENDEURS en boutique.
+Tu as acces au stock en temps reel de deux magasins a Rabat:
+- M1: Centre Commercial Ait Baha (store ID: ${CONFIG.STORE_M1_ID})
+- M2: Centre Commercial Oued Dahab / 9isaria (store ID: ${CONFIG.STORE_M2_ID})
+
+${stock}
+${repairs}
+
+REGLES ABSOLUES:
+1. Tu ne parles QUE des produits dans le stock ci-dessus. Zero invention.
+2. TOUJOURS indiquer le prix ET la disponibilite par magasin (M1 vs M2).
+3. Si produit non disponible -> propose 2-3 alternatives coherentes du stock (meme gamme, prix proche).
+4. Reponses MAX 4 lignes - tu parles a un vendeur face a un client, chaque seconde compte.
+5. Tu es un vrai commercial - ton objectif est de VENDRE. Cree l'envie, mentionne les promos.
+6. Detecte la langue (Francais / Darija / Arabe) et reponds dans la meme langue naturellement.
+7. Pour les reparations -> donne la fourchette + "diagnostic gratuit en boutique".
+8. Ton ton: direct, chaleureux, efficace. Jamais corporate.
+9. Quand tu listes des telephones, formate-les clairement avec prix et magasin.
+
+EXEMPLES:
+Q: "iPhone 13 dispo ?"
+R: "iPhone 13 128Go | M1: 4200 MAD (en stock) | M2: Non dispo | Dernier en stock M1, faut closer vite!"
+
+Q: "budget 3000 MAD"
+R: Liste les 3 meilleures options dans ce budget avec prix par magasin.`;
 }
 
-function saveVoicePref(v){localStorage.setItem('cm_voice',v);}
-function loadVoicePref(){
-  const v=localStorage.getItem('cm_voice')==='true';
-  document.getElementById('voiceReplyToggle').checked=v;
+// ============================================================
+// STORE FILTER
+// ============================================================
+function switchStore(store, btn) {
+  activeStoreFilter = store;
+  document.querySelectorAll('.store-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
 }
-function speakReply(text){
-  if(localStorage.getItem('cm_voice')!=='true')return;
+
+// ============================================================
+// DRAWER
+// ============================================================
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ============================================================
+// SHEET LOGGING
+// ============================================================
+function saveSheetId() {
+  const id = document.getElementById('sheetIdInput').value.trim();
+  CONFIG.SHEET_ID = id;
+  localStorage.setItem('cm_sheet_id', id);
+  document.getElementById('sheetStatus').textContent = id ? 'Sheet ID sauvegarde' : 'Sheet ID supprime';
+  document.getElementById('sheetStatus').className = 'd-status ok';
+}
+
+async function logToSheet(userMsg, aiReply) {
+  if (!CONFIG.SHEET_ID) return;
+  try {
+    const timestamp = new Date().toISOString();
+    const url = CONFIG.PROXY_URL + encodeURIComponent(
+      'https://sheets.googleapis.com/v4/spreadsheets/' + CONFIG.SHEET_ID + '/values/Sheet1!A:D:append?valueInputOption=RAW&key=' + CONFIG.GOOGLE_CLIENT_ID
+    );
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        values: [[timestamp, 'vendeur', userMsg, aiReply]]
+      })
+    });
+  } catch (e) {
+    console.warn('Sheet logging failed:', e);
+  }
+}
+
+// ============================================================
+// VOICE
+// ============================================================
+function saveVoicePref(v) { localStorage.setItem('cm_voice', v); }
+function loadVoicePref() {
+  const v = localStorage.getItem('cm_voice') === 'true';
+  document.getElementById('voiceReplyToggle').checked = v;
+}
+
+function speakReply(text) {
+  if (localStorage.getItem('cm_voice') !== 'true') return;
   window.speechSynthesis.cancel();
-  const clean=text
-    .replace(/<[^>]*>/g,'')
-    .replace(/\*\*(.*?)\*\*/g,'$1')
-    .replace(/\*(.*?)\*/g,'$1')
-    .replace(/[✅❌🔧📱⚠️🔥👌]/g,'')
-    .replace(/\|/g,' — ')
-    .replace(/stock:\d+/g,'')
-    .replace(/PROMO:/g,'en promo à')
-    .replace(/\s+/g,' ')
+  const clean = text
+    .replace(/<[^>]*>/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/[^\w\s\d.,!?;:'\-()àâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ]/g, ' ')
+    .replace(/\|/g, ', ')
+    .replace(/\s+/g, ' ')
     .trim();
-  const u=new SpeechSynthesisUtterance(clean);
-  const voices=window.speechSynthesis.getVoices();
-  const preferred=voices.find(v=>v.name.includes('Amélie')||v.name.includes('Thomas')||v.name.includes('French')||v.lang==='fr-FR');
-  if(preferred)u.voice=preferred;
-  u.lang='fr-FR';
-  u.rate=1.0;
-  u.pitch=1.1;
+  const u = new SpeechSynthesisUtterance(clean);
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.lang === 'fr-FR') || voices.find(v => v.lang.startsWith('fr'));
+  if (preferred) u.voice = preferred;
+  u.lang = 'fr-FR';
+  u.rate = 1.0;
+  u.pitch = 1.05;
   window.speechSynthesis.speak(u);
 }
 
-function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('overlay').classList.add('open');}
-function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('overlay').classList.remove('open');}
-function clearHistory(){history=[];document.getElementById('messages').innerHTML='<div class="welcome"><span class="welcome-icon">📱</span><h2>Assistant Corner Mobile</h2><p>Conversation réinitialisée.</p></div>';closeDrawer();}
+function toggleVoice() { isListening ? stopVoice() : startVoice(); }
 
-function addMsg(role,text){
-  const c=document.getElementById('messages');
-  const w=c.querySelector('.welcome');if(w)w.remove();
-  const m=document.createElement('div');m.className=`msg ${role}`;
-  const lbl=document.createElement('div');lbl.className='msg-label';lbl.textContent=role==='user'?'Vendeur':'Assistant';
-  const b=document.createElement('div');b.className='bubble';
-  b.innerHTML=text
-    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-    .replace(/(\d{3,5}\s*MAD)/g,'<strong style="color:var(--blue)">$1</strong>')
-    .replace(/✅/g,'<span style="color:var(--green)">✅</span>')
-    .replace(/❌/g,'<span style="color:#DC3C2A">❌</span>')
-    .replace(/⚠️/g,'<span style="color:#f59e0b">⚠️</span>')
-    .replace(/\n/g,'<br>');
-  m.appendChild(lbl);m.appendChild(b);c.appendChild(m);c.scrollTop=c.scrollHeight;
-}
-
-function showTyping(){
-  const c=document.getElementById('messages');
-  const t=document.createElement('div');t.className='msg ai';t.id='typing';
-  t.innerHTML='<div class="msg-label">Assistant</div><div class="typing"><span></span><span></span><span></span></div>';
-  c.appendChild(t);c.scrollTop=c.scrollHeight;
-}
-function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
-
-async function sendMessage(text){
-  const input=document.getElementById('textInput');
-  const msg=text||input.value.trim();
-  if(!msg||isLoading)return;
-  if(!apiKey){openDrawer();return;}
-  input.value='';autoResize(input);
-  isLoading=true;document.getElementById('sendBtn').disabled=true;
-  setStatus('...','loading');
-  addMsg('user',msg);
-  history.push({role:'user',content:msg});
-  showTyping();
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,system:buildPrompt(),messages:history})
-    });
-    const data=await res.json();removeTyping();
-    if(data.error){addMsg('ai','❌ '+data.error.message);setStatus('Erreur','error');}
-    else{
-      const reply=data.content[0].text;
-      history.push({role:'assistant',content:reply});
-      if(history.length>20)history=history.slice(-16);
-      addMsg('ai',reply);
-      speakReply(reply);
-      setStatus('Prêt','ok');
-    }
-  }catch(e){removeTyping();addMsg('ai','❌ Connexion impossible — vérifie ta clé ⚙️');setStatus('Erreur','error');}
-  isLoading=false;document.getElementById('sendBtn').disabled=false;
-}
-
-function quickSend(t){document.getElementById('textInput').value=t;sendMessage();}
-function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
-function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
-
-function toggleVoice(){isListening?stopVoice():startVoice();}
-function startVoice(){
-  if(!('webkitSpeechRecognition'in window)&&!('SpeechRecognition'in window)){
-    document.getElementById('voiceStatus').textContent='⚠️ Vocal non supporté';return;
+function startVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    document.getElementById('voiceStatus').textContent = 'Vocal non supporte sur ce navigateur';
+    return;
   }
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition=new SR();recognition.lang='fr-FR';recognition.interimResults=true;
-  recognition.onstart=()=>{isListening=true;document.getElementById('voiceBtn').classList.add('listening');document.getElementById('voiceStatus').textContent="🎙️ J'écoute...";document.getElementById('voiceStatus').classList.add('active');};
-  recognition.onresult=(e)=>{const t=Array.from(e.results).map(r=>r[0].transcript).join('');document.getElementById('textInput').value=t;if(e.results[0].isFinal){stopVoice();sendMessage();}};
-  recognition.onerror=()=>stopVoice();recognition.onend=()=>stopVoice();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'fr-FR';
+  recognition.interimResults = true;
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('voiceBtn').classList.add('listening');
+    document.getElementById('voiceStatus').textContent = "J'ecoute...";
+    document.getElementById('voiceStatus').classList.add('active');
+  };
+  recognition.onresult = (e) => {
+    const t = Array.from(e.results).map(r => r[0].transcript).join('');
+    document.getElementById('textInput').value = t;
+    if (e.results[0].isFinal) { stopVoice(); sendMessage(); }
+  };
+  recognition.onerror = () => stopVoice();
+  recognition.onend = () => stopVoice();
   recognition.start();
 }
-function stopVoice(){
-  isListening=false;if(recognition)recognition.stop();
+
+function stopVoice() {
+  isListening = false;
+  if (recognition) recognition.stop();
   document.getElementById('voiceBtn').classList.remove('listening');
-  document.getElementById('voiceStatus').textContent='';
+  document.getElementById('voiceStatus').textContent = '';
   document.getElementById('voiceStatus').classList.remove('active');
 }
+
+// ============================================================
+// CHAT UI
+// ============================================================
+function clearHistory() {
+  history = [];
+  document.getElementById('messages').innerHTML = '<div class="welcome"><span class="welcome-icon">📱</span><h2>Assistant Corner Mobile</h2><p>Conversation reinitialisee.</p></div>';
+  closeDrawer();
+}
+
+function addMsg(role, text) {
+  const c = document.getElementById('messages');
+  const w = c.querySelector('.welcome');
+  if (w) w.remove();
+  const m = document.createElement('div');
+  m.className = 'msg ' + role;
+  const lbl = document.createElement('div');
+  lbl.className = 'msg-label';
+  lbl.textContent = role === 'user' ? 'Vendeur' : 'Assistant';
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.innerHTML = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(\d{3,6}\s*MAD)/g, '<strong style="color:var(--blue)">$1</strong>')
+    .replace(/\n/g, '<br>');
+  m.appendChild(lbl);
+  m.appendChild(b);
+  c.appendChild(m);
+  c.scrollTop = c.scrollHeight;
+}
+
+function showTyping() {
+  const c = document.getElementById('messages');
+  const t = document.createElement('div');
+  t.className = 'msg ai';
+  t.id = 'typing';
+  t.innerHTML = '<div class="msg-label">Assistant</div><div class="typing"><span></span><span></span><span></span></div>';
+  c.appendChild(t);
+  c.scrollTop = c.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
+
+// ============================================================
+// SEND MESSAGE
+// ============================================================
+async function sendMessage(text) {
+  const input = document.getElementById('textInput');
+  const msg = text || input.value.trim();
+  if (!msg || isLoading) return;
+  input.value = '';
+  autoResize(input);
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  setStatus('Reflexion...', 'loading');
+  addMsg('user', msg);
+  history.push({ role: 'user', content: msg });
+  showTyping();
+
+  try {
+    const claudeUrl = CONFIG.PROXY_URL + encodeURIComponent('https://api.anthropic.com/v1/messages');
+    const res = await fetch(claudeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CONFIG.CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: CONFIG.CLAUDE_MODEL,
+        max_tokens: 500,
+        system: buildSystemPrompt(),
+        messages: history.slice(-16) // Keep last 16 messages for context
+      })
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (data.error) {
+      addMsg('ai', 'Erreur API: ' + data.error.message);
+      setStatus('Erreur', 'error');
+    } else {
+      const reply = data.content[0].text;
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > 20) history = history.slice(-16);
+      addMsg('ai', reply);
+      speakReply(reply);
+      setStatus('Pret', 'ok');
+      logToSheet(msg, reply);
+    }
+  } catch (e) {
+    removeTyping();
+    addMsg('ai', 'Connexion impossible: ' + e.message);
+    setStatus('Erreur', 'error');
+  }
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function quickSend(t) { document.getElementById('textInput').value = t; sendMessage(); }
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
 </script>
 </body>
 </html>

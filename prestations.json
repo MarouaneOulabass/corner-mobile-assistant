@@ -1,0 +1,18 @@
+{
+  "services": [
+    {"id": 1, "name": "Remplacement ecran iPhone", "price_range": "200-800 MAD", "duration": "30-60 min", "at_home": true},
+    {"id": 2, "name": "Remplacement ecran Samsung", "price_range": "200-600 MAD", "duration": "30-60 min", "at_home": true},
+    {"id": 3, "name": "Remplacement batterie", "price_range": "150-400 MAD", "duration": "20-30 min", "at_home": true},
+    {"id": 4, "name": "Transfert de donnees", "price_range": "100-200 MAD", "duration": "30-60 min", "at_home": true},
+    {"id": 5, "name": "Configuration telephone neuf", "price_range": "50-100 MAD", "duration": "15-30 min", "at_home": true},
+    {"id": 6, "name": "Recuperation donnees", "price_range": "200-500 MAD", "duration": "1-3h", "at_home": false},
+    {"id": 7, "name": "Deblocage operateur", "price_range": "100-300 MAD", "duration": "15-30 min", "at_home": true},
+    {"id": 8, "name": "Installation film protection", "price_range": "50-150 MAD", "duration": "10 min", "at_home": true},
+    {"id": 9, "name": "Diagnostic complet", "price_range": "50 MAD", "duration": "15 min", "at_home": true},
+    {"id": 10, "name": "Nettoyage interne (poussiere)", "price_range": "100-150 MAD", "duration": "20 min", "at_home": false}
+  ],
+  "zones_couvertes": ["Rabat", "Sale", "Temara", "Hay Riad", "Agdal", "Hassan", "Ocean"],
+  "horaires": "Lundi-Samedi 9h-20h",
+  "whatsapp": "+212 XXX XXX XXX",
+  "frais_deplacement": "Gratuit dans Rabat, 50 MAD Sale/Temara"
+}
