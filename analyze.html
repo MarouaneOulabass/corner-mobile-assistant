@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corner Mobile - Analyse des Logs</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--blue:#2AA8DC;--green:#5BBF3E;--dark:#080c0f;--card:#131b21;--border:rgba(42,168,220,0.12);--text:#e2eaf0;--muted:#4a6070;--red:#DC3C2A;--yellow:#f59e0b}
+html,body{min-height:100vh;background:var(--dark);color:var(--text);font-family:'DM Mono',monospace}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(42,168,220,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(42,168,220,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* Lock screen */
+.lock-screen{position:fixed;inset:0;z-index:9999;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px}
+.lock-screen.hidden{display:none}
+.lock-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800}
+.lock-logo .c1{color:var(--blue)}.lock-logo .c2{color:var(--green)}
+.lock-sub{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+.lock-input{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;color:var(--text);font-family:'DM Mono',monospace;font-size:16px;width:min(300px,80vw);text-align:center;outline:none}
+.lock-input:focus{border-color:rgba(42,168,220,0.5)}
+.lock-btn{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:14px 40px;font-family:'DM Mono',monospace;font-size:14px;cursor:pointer;font-weight:500}
+.lock-error{color:var(--red);font-size:12px;min-height:18px}
+
+/* Main layout */
+.app{display:none;position:relative;z-index:1;max-width:960px;margin:0 auto;padding:20px 16px 40px}
+.app.visible{display:block}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
+.logo .c1{color:var(--blue)}.logo .c2{color:var(--green)}
+.logo-tag{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
+.header-actions{display:flex;gap:8px}
+.btn{padding:8px 14px;border-radius:8px;border:none;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:opacity 0.2s}
+.btn:hover{opacity:0.85}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-red{background:rgba(220,60,42,0.15);border:1px solid rgba(220,60,42,0.3);color:var(--red)}
+.btn-muted{background:var(--card);border:1px solid var(--border);color:var(--muted)}
+
+/* Stats grid */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.stat-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:500;color:var(--blue)}
+.stat-value.green{color:var(--green)}
+.stat-value.yellow{color:var(--yellow)}
+.stat-value.red{color:var(--red)}
+.stat-detail{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Section */
+.section{margin-bottom:28px}
+.section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--blue);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.section-title.red{color:var(--red)}
+.section-title.green{color:var(--green)}
+.section-title.yellow{color:var(--yellow)}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:12px;background:var(--card);border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+th{text-align:left;padding:10px 12px;background:rgba(42,168,220,0.08);color:var(--blue);font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:500}
+td{padding:8px 12px;border-top:1px solid var(--border);color:var(--text);vertical-align:top;max-width:400px;overflow:hidden;text-overflow:ellipsis}
+tr:hover td{background:rgba(42,168,220,0.04)}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;margin:1px 2px}
+.tag-red{background:rgba(220,60,42,0.15);color:var(--red)}
+.tag-yellow{background:rgba(245,158,11,0.15);color:var(--yellow)}
+.tag-green{background:rgba(91,191,62,0.15);color:var(--green)}
+.tag-blue{background:rgba(42,168,220,0.15);color:var(--blue)}
+
+/* Suggestion cards */
+.suggestion-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.suggestion-card h4{font-size:12px;color:var(--blue);margin-bottom:6px;font-weight:500}
+.suggestion-card p{font-size:12px;color:var(--muted);line-height:1.6}
+.suggestion-card code{background:rgba(42,168,220,0.1);color:var(--blue);padding:1px 5px;border-radius:4px;font-size:11px}
+.suggestion-card pre{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px;font-size:11px;overflow-x:auto;color:var(--text);white-space:pre-wrap}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:12px;display:block}
+.empty h3{font-family:'Syne',sans-serif;font-size:18px;color:var(--text);margin-bottom:8px}
+.empty p{font-size:12px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD LOCK SCREEN -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-logo"><span class="c1">Corner</span><span class="c2">Mobile</span></div>
+  <div class="lock-sub">Analyse des Logs</div>
+  <input class="lock-input" id="lockPass" type="password" placeholder="Mot de passe admin" onkeydown="if(event.key==='Enter')checkPassword()">
+  <button class="lock-btn" onclick="checkPassword()">Entrer</button>
+  <div class="lock-error" id="lockError"></div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="app">
+  <header>
+    <div>
+      <span class="logo"><span class="c1">Corner</span><span class="c2">Mobile</span></span>
+      <span class="logo-tag">analyse</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-blue" onclick="exportCSV()">Exporter CSV</button>
+      <button class="btn btn-red" onclick="clearLogs()">Vider les logs</button>
+      <button class="btn btn-muted" onclick="loadAnalysis()">Rafraichir</button>
+    </div>
+  </header>
+
+  <div id="content"></div>
+</div>
+
+<script>
+const PASSWORD = 'corner2026';
+
+// ============================================================
+// AUTH
+// ============================================================
+function checkPassword() {
+  if (document.getElementById('lockPass').value === PASSWORD) {
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    sessionStorage.setItem('cm_analyze_auth', '1');
+    loadAnalysis();
+  } else {
+    document.getElementById('lockError').textContent = 'Mot de passe incorrect';
+    document.getElementById('lockPass').value = '';
+  }
+}
+window.onload = () => {
+  if (sessionStorage.getItem('cm_analyze_auth') === '1') {
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    loadAnalysis();
+  }
+  document.getElementById('lockPass').focus();
+};
+
+// ============================================================
+// DATA LOADING
+// ============================================================
+function loadLogs() {
+  let client = [], vendor = [];
+  try { client = JSON.parse(localStorage.getItem('cm_client_logs') || '[]'); } catch {}
+  try { vendor = JSON.parse(localStorage.getItem('cm_vendor_logs') || '[]'); } catch {}
+  // Tag source
+  client.forEach(l => l._source = 'client');
+  vendor.forEach(l => l._source = 'vendeur');
+  return { client, vendor, all: [...client, ...vendor].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
+}
+
+function loadCacheEntries() {
+  // Try to infer cached patterns from the cache.json structure
+  // We'll fetch it to compare against questions
+  return fetch('cache.json?t=' + Date.now())
+    .then(r => r.ok ? r.json() : { entries: [] })
+    .then(d => d.entries || [])
+    .catch(() => []);
+}
+
+function loadCatalogue() {
+  return fetch('catalogue.json?t=' + Date.now())
+    .then(r => r.ok ? r.json() : { appareils: [] })
+    .then(d => d.appareils || [])
+    .catch(() => []);
+}
+
+// ============================================================
+// ANALYSIS
+// ============================================================
+const FAIL_PATTERNS = [
+  { regex: /je v[eé]rifie/i, label: 'Verification en cours' },
+  { regex: /je ne sais pas/i, label: 'Ne sait pas' },
+  { regex: /erreur|error/i, label: 'Erreur' },
+  { regex: /connexion impossible/i, label: 'Erreur connexion' },
+  { regex: /cl[eé] api non configur/i, label: 'Config manquante' },
+  { regex: /rate limit/i, label: 'Rate limit' },
+  { regex: /api surcharg/i, label: 'API surchargee' },
+];
+
+const TOPIC_KEYWORDS = {
+  'Prix / Tarifs': ['prix', 'combien', 'cout', 'cher', 'budget', 'bchhal', 'thaman'],
+  'Stock / Disponibilite': ['stock', 'dispo', 'disponible', 'disponibilite', 'kayn', 'en stock'],
+  'iPhone': ['iphone', 'apple'],
+  'Samsung': ['samsung', 'galaxy'],
+  'Xiaomi / Redmi': ['xiaomi', 'redmi', 'poco'],
+  'Reparation': ['reparation', 'reparer', 'ecran', 'batterie', 'casse', 'panne'],
+  'Accessoires': ['accessoire', 'coque', 'chargeur', 'cable', 'ecouteur', 'airpod'],
+  'Garantie': ['garantie', 'garanti', 'daman', 'warranty'],
+  'Horaires': ['horaire', 'heure', 'ouvert', 'ferme', 'waqtach'],
+  'Adresse / Localisation': ['adresse', 'ou', 'localisation', 'map', 'winfin'],
+  'WhatsApp / Contact': ['whatsapp', 'numero', 'appeler', 'contact'],
+  'Rendez-vous': ['rdv', 'rendez-vous', 'rendezvous', 'appointment'],
+  'Comparaison': ['compare', 'comparer', 'comparaison', 'vs', 'difference', 'mieux'],
+  'Paiement': ['paiement', 'payer', 'credit', 'facilite', 'tqsit', 'cash', 'carte'],
+};
+
+function detectTopics(text) {
+  const lower = text.toLowerCase();
+  const topics = [];
+  for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
+    if (keywords.some(kw => lower.includes(kw))) topics.push(topic);
+  }
+  return topics.length > 0 ? topics : ['Autre'];
+}
+
+function isFailed(aiReply) {
+  if (!aiReply) return [{ label: 'Reponse vide' }];
+  const matches = FAIL_PATTERNS.filter(p => p.regex.test(aiReply));
+  // Very short replies (less than 20 chars) that aren't cache hits
+  if (aiReply.length < 20 && matches.length === 0) {
+    matches.push({ label: 'Reponse tres courte' });
+  }
+  return matches;
+}
+
+function groupSimilarQuestions(logs) {
+  const groups = {};
+  logs.forEach(log => {
+    if (!log.user) return;
+    const topics = detectTopics(log.user);
+    const key = topics.sort().join(' + ');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(log);
+  });
+  return groups;
+}
+
+function isCachedQuestion(question, cacheEntries) {
+  const lower = question.toLowerCase();
+  return cacheEntries.some(entry =>
+    (entry.patterns || []).some(p => lower.includes(p.toLowerCase()))
+  );
+}
+
+function isKnownProduct(question, catalogue) {
+  const lower = question.toLowerCase();
+  return catalogue.some(item =>
+    lower.includes((item.nom || '').toLowerCase().split(' ')[0])
+  );
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+async function loadAnalysis() {
+  const { client, vendor, all } = loadLogs();
+  const cacheEntries = await loadCacheEntries();
+  const catalogue = await loadCatalogue();
+
+  const container = document.getElementById('content');
+
+  if (all.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <span class="empty-icon">📭</span>
+        <h3>Aucun log trouve</h3>
+        <p>Les conversations apparaitront ici une fois que les utilisateurs<br>
+        auront interagi avec l'assistant client ou vendeur.<br><br>
+        Cles verifiees :<br>
+        <code>cm_client_logs</code> : ${client.length} entrees<br>
+        <code>cm_vendor_logs</code> : ${vendor.length} entrees</p>
+      </div>`;
+    return;
+  }
+
+  // --- Compute stats ---
+  const cacheHits = parseInt(localStorage.getItem('cm_cache_hits') || '0');
+  const apiCalls = parseInt(localStorage.getItem('cm_api_calls') || '0');
+  const totalCacheRequests = cacheHits + apiCalls;
+  const cacheRate = totalCacheRequests > 0 ? Math.round(cacheHits / totalCacheRequests * 100) : 0;
+
+  // Topic frequency
+  const topicCounts = {};
+  all.forEach(log => {
+    if (!log.user) return;
+    detectTopics(log.user).forEach(t => {
+      topicCounts[t] = (topicCounts[t] || 0) + 1;
+    });
+  });
+  const sortedTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]);
+
+  // Failed conversations
+  const failed = [];
+  all.forEach(log => {
+    const issues = isFailed(log.ai);
+    if (issues.length > 0) {
+      failed.push({ ...log, _issues: issues });
+    }
+  });
+
+  // Grouped questions
+  const groups = groupSimilarQuestions(all);
+  const sortedGroups = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+
+  // Uncached frequent questions
+  const uncachedQuestions = {};
+  all.forEach(log => {
+    if (!log.user) return;
+    if (!isCachedQuestion(log.user, cacheEntries)) {
+      const topics = detectTopics(log.user).sort().join(' + ');
+      if (!uncachedQuestions[topics]) uncachedQuestions[topics] = [];
+      uncachedQuestions[topics].push(log.user);
+    }
+  });
+  const frequentUncached = Object.entries(uncachedQuestions)
+    .filter(([, qs]) => qs.length >= 2)
+    .sort((a, b) => b[1].length - a[1].length);
+
+  // Topics where bot struggles
+  const failedTopics = {};
+  failed.forEach(f => {
+    detectTopics(f.user || '').forEach(t => {
+      failedTopics[t] = (failedTopics[t] || 0) + 1;
+    });
+  });
+  const sortedFailedTopics = Object.entries(failedTopics).sort((a, b) => b[1] - a[1]);
+
+  // Unknown products: questions mentioning brands/models not in catalogue
+  const brandPatterns = ['iphone', 'samsung', 'galaxy', 'xiaomi', 'redmi', 'poco', 'oppo', 'huawei', 'honor', 'oneplus', 'pixel', 'realme', 'vivo', 'tecno', 'infinix', 'nokia', 'motorola', 'nothing'];
+  const unknownProducts = [];
+  all.forEach(log => {
+    if (!log.user) return;
+    const lower = log.user.toLowerCase();
+    brandPatterns.forEach(brand => {
+      if (lower.includes(brand) && !isKnownProduct(log.user, catalogue)) {
+        unknownProducts.push(log.user);
+      }
+    });
+  });
+
+  // Date range
+  const dates = all.map(l => new Date(l.timestamp)).filter(d => !isNaN(d));
+  const minDate = dates.length > 0 ? dates[0].toLocaleDateString('fr-FR') : '-';
+  const maxDate = dates.length > 0 ? dates[dates.length - 1].toLocaleDateString('fr-FR') : '-';
+
+  // --- Render ---
+  let html = '';
+
+  // Stats
+  html += `<div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total conversations</div>
+      <div class="stat-value">${all.length}</div>
+      <div class="stat-detail">${client.length} client / ${vendor.length} vendeur</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Taux de cache</div>
+      <div class="stat-value ${cacheRate >= 50 ? 'green' : cacheRate >= 25 ? 'yellow' : 'red'}">${cacheRate}%</div>
+      <div class="stat-detail">${cacheHits} cache / ${apiCalls} API</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Conversations echouees</div>
+      <div class="stat-value ${failed.length === 0 ? 'green' : 'red'}">${failed.length}</div>
+      <div class="stat-detail">${all.length > 0 ? Math.round(failed.length / all.length * 100) : 0}% du total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Periode</div>
+      <div class="stat-value" style="font-size:14px">${minDate}</div>
+      <div class="stat-detail">au ${maxDate}</div>
+    </div>
+  </div>`;
+
+  // Top topics
+  html += `<div class="section">
+    <div class="section-title">Sujets les plus frequents</div>
+    <table><tr><th>Sujet</th><th>Nombre</th><th>Pourcentage</th></tr>`;
+  sortedTopics.slice(0, 15).forEach(([topic, count]) => {
+    const pct = Math.round(count / all.length * 100);
+    html += `<tr><td>${esc(topic)}</td><td>${count}</td><td>${pct}%</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // Failed conversations
+  if (failed.length > 0) {
+    html += `<div class="section">
+      <div class="section-title red">Conversations echouees (${failed.length})</div>
+      <table><tr><th>Date</th><th>Source</th><th>Question</th><th>Probleme</th><th>Reponse (extrait)</th></tr>`;
+    failed.slice(0, 50).forEach(f => {
+      const date = f.timestamp ? new Date(f.timestamp).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+      const issues = f._issues.map(i => `<span class="tag tag-red">${esc(i.label)}</span>`).join(' ');
+      const excerpt = (f.ai || '').substring(0, 80) + ((f.ai || '').length > 80 ? '...' : '');
+      html += `<tr>
+        <td>${date}</td>
+        <td><span class="tag tag-blue">${esc(f._source || '?')}</span></td>
+        <td>${esc(f.user || '-')}</td>
+        <td>${issues}</td>
+        <td style="color:var(--muted)">${esc(excerpt)}</td>
+      </tr>`;
+    });
+    html += `</table></div>`;
+  }
+
+  // Question groups
+  html += `<div class="section">
+    <div class="section-title">Regroupement des questions (${sortedGroups.length} groupes)</div>
+    <table><tr><th>Sujet</th><th>Nombre</th><th>Exemples</th></tr>`;
+  sortedGroups.slice(0, 20).forEach(([topic, logs]) => {
+    const examples = [...new Set(logs.map(l => l.user).filter(Boolean))].slice(0, 3).map(e => esc(e)).join('<br>');
+    html += `<tr><td>${esc(topic)}</td><td>${logs.length}</td><td style="font-size:11px;color:var(--muted)">${examples}</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // --- SUGGESTIONS ---
+  html += `<div class="section">
+    <div class="section-title green">Suggestions d'amelioration</div>`;
+
+  // 1. New cache entries
+  if (frequentUncached.length > 0) {
+    html += `<div class="suggestion-card">
+      <h4>Nouvelles entrees pour cache.json</h4>
+      <p>Ces sujets reviennent souvent mais ne sont pas dans le cache. Ajouter des entrees permettrait de reduire les appels API et d'accelerer les reponses.</p>`;
+    frequentUncached.slice(0, 5).forEach(([topic, questions]) => {
+      const exampleQ = questions[0];
+      const keywords = topic.split(' + ').flatMap(t => (TOPIC_KEYWORDS[t] || []).slice(0, 2));
+      html += `<pre>// Sujet: ${esc(topic)} (${questions.length} fois)
+// Exemple: "${esc(exampleQ)}"
+{
+  "q": "${esc(topic.toLowerCase().replace(/ \+ /g, '_').replace(/ /g, '_'))}",
+  "patterns": [${keywords.map(k => '"' + esc(k) + '"').join(', ')}],
+  "a": "REPONSE A REDIGER"
+}</pre>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="suggestion-card">
+      <h4>Nouvelles entrees pour cache.json</h4>
+      <p>Pas assez de donnees ou toutes les questions frequentes sont deja en cache.</p>
+    </div>`;
+  }
+
+  // 2. Prompt adjustments
+  if (sortedFailedTopics.length > 0) {
+    html += `<div class="suggestion-card">
+      <h4>Ajustements du prompt systeme</h4>
+      <p>Le bot rencontre des difficultes sur ces sujets. Envisagez d'ajouter des instructions specifiques dans le prompt systeme.</p>`;
+    sortedFailedTopics.slice(0, 5).forEach(([topic, count]) => {
+      html += `<pre>// "${esc(topic)}" - ${count} echec(s)
+// Suggestion: ajouter une regle dans le prompt systeme, ex:
+// "Quand on te demande ${esc(topic.toLowerCase())}, reponds toujours avec [X]."</pre>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="suggestion-card">
+      <h4>Ajustements du prompt systeme</h4>
+      <p>Aucun probleme recurrent detecte. Le prompt semble bien couvrir les sujets demandes.</p>
+    </div>`;
+  }
+
+  // 3. Missing products
+  if (unknownProducts.length > 0) {
+    const uniqueUnknown = [...new Set(unknownProducts)];
+    html += `<div class="suggestion-card">
+      <h4>Produits manquants dans le catalogue</h4>
+      <p>Ces questions mentionnent des marques/modeles qui ne semblent pas etre dans <code>catalogue.json</code>. Verifiez si ces produits devraient etre ajoutes au stock Loyverse.</p>
+      <pre>${uniqueUnknown.slice(0, 10).map(q => '- "' + esc(q) + '"').join('\n')}</pre>
+    </div>`;
+  } else {
+    html += `<div class="suggestion-card">
+      <h4>Produits manquants dans le catalogue</h4>
+      <p>Toutes les questions sur des produits semblent correspondre a des articles existants dans le catalogue.</p>
+    </div>`;
+  }
+
+  // Cache rate suggestion
+  if (cacheRate < 30 && totalCacheRequests > 10) {
+    html += `<div class="suggestion-card">
+      <h4>Taux de cache faible (${cacheRate}%)</h4>
+      <p>Seulement ${cacheRate}% des requetes sont servies depuis le cache. Ajoutez les questions frequentes ci-dessus dans <code>cache.json</code> pour reduire les couts API et ameliorer la vitesse de reponse.</p>
+    </div>`;
+  }
+
+  html += `</div>`;
+
+  // Recent logs (last 30)
+  html += `<div class="section">
+    <div class="section-title">Derniers logs (${Math.min(30, all.length)} / ${all.length})</div>
+    <table><tr><th>Date</th><th>Source</th><th>Question</th><th>Reponse (extrait)</th><th>Sujets</th></tr>`;
+  all.slice(-30).reverse().forEach(log => {
+    const date = log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+    const topics = log.user ? detectTopics(log.user).map(t => `<span class="tag tag-blue">${esc(t)}</span>`).join(' ') : '';
+    const excerpt = (log.ai || '').substring(0, 60) + ((log.ai || '').length > 60 ? '...' : '');
+    const issues = isFailed(log.ai);
+    const rowStyle = issues.length > 0 ? ' style="background:rgba(220,60,42,0.04)"' : '';
+    html += `<tr${rowStyle}>
+      <td>${date}</td>
+      <td><span class="tag tag-${log._source === 'client' ? 'green' : 'yellow'}">${esc(log._source || '?')}</span></td>
+      <td>${esc(log.user || '-')}</td>
+      <td style="color:var(--muted);font-size:11px">${esc(excerpt)}</td>
+      <td>${topics}</td>
+    </tr>`;
+  });
+  html += `</table></div>`;
+
+  container.innerHTML = html;
+}
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
+function exportCSV() {
+  const { all } = loadLogs();
+  if (all.length === 0) { alert('Aucun log a exporter.'); return; }
+
+  const BOM = '\uFEFF';
+  const header = 'Date;Source;Question;Reponse;Sujets\n';
+  const rows = all.map(log => {
+    const date = log.timestamp || '';
+    const source = log._source || '';
+    const user = csvEsc(log.user || '');
+    const ai = csvEsc(log.ai || '');
+    const topics = log.user ? detectTopics(log.user).join(', ') : '';
+    return `${date};${source};${user};${ai};${csvEsc(topics)}`;
+  }).join('\n');
+
+  const blob = new Blob([BOM + header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'corner_mobile_logs_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvEsc(str) {
+  if (!str) return '';
+  str = str.replace(/"/g, '""');
+  if (str.includes(';') || str.includes('"') || str.includes('\n')) {
+    return '"' + str + '"';
+  }
+  return str;
+}
+
+// ============================================================
+// CLEAR LOGS
+// ============================================================
+function clearLogs() {
+  if (!confirm('Supprimer tous les logs de conversation ? Cette action est irreversible.')) return;
+  localStorage.removeItem('cm_client_logs');
+  localStorage.removeItem('cm_vendor_logs');
+  localStorage.removeItem('cm_cache_hits');
+  localStorage.removeItem('cm_api_calls');
+  loadAnalysis();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function esc(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

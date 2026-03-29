@@ -1,9 +1,9 @@
 {
   "version": "1.1",
   "entries": [
-    {"q": "horaires", "patterns": ["heure", "horaire", "ouvert", "ferme", "waqtach", "imta", "open", "close"], "a": "Nous sommes ouverts du Lundi au Samedi de 9h a 20h ! 🕐 Venez quand vous voulez, on est la pour vous. WhatsApp: +212 XXX XXX XXX"},
+    {"q": "horaires", "patterns": ["heure", "horaire", "ouvert", "ferme", "waqtach", "imta", "open", "close"], "a": "Nous sommes ouverts du Lundi au Samedi de 9h a 20h ! 🕐 Venez quand vous voulez, on est la pour vous. WhatsApp: +212 694432235"},
     {"q": "adresse", "patterns": ["adresse", "fin", "winfin", "localisation", "emplacement", "map", "lieu"], "a": "On a 2 boutiques a Rabat :\n📍 M1 : Centre Commercial Ait Baha\n📍 M2 : Centre Commercial Oued Dahab (9isaria)\nOn vous attend ! 😊"},
-    {"q": "whatsapp", "patterns": ["whatsapp", "numero", "appeler", "contact"], "a": "Vous pouvez nous joindre sur WhatsApp au +212 XXX XXX XXX 📱 On repond vite !"},
+    {"q": "whatsapp", "patterns": ["whatsapp", "numero", "appeler", "contact"], "a": "Vous pouvez nous joindre sur WhatsApp au +212 694432235 📱 On repond vite !"},
     {"q": "garantie", "patterns": ["garantie", "garanti", "daman", "warranty"], "a": "Tous nos telephones sont garantis ! ✅ Garantie 6 mois sur les appareils d'occasion et garantie constructeur sur le neuf."},
     {"q": "paiement", "patterns": ["paiement", "payer", "credit", "facilite", "tqsit", "cash", "carte", "visa"], "a": "On accepte le cash et les cartes bancaires 💳 Pour les gros montants, on peut discuter de facilites de paiement en boutique !"}
   ]

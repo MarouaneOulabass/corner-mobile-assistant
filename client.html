@@ -187,7 +187,11 @@ select.form-input{-webkit-appearance:none;appearance:none;background-image:url("
     </div>
     <div class="form-group">
       <label>Numero WhatsApp</label>
-      <input class="form-input" id="settWhatsapp" type="text" placeholder="+212 XXX XXX XXX">
+      <input class="form-input" id="settWhatsapp" type="text" placeholder="+212 694432235">
+    </div>
+    <div class="form-group">
+      <label>Google Sheet ID (logging)</label>
+      <input class="form-input" id="settSheetId" type="text" placeholder="ID du Google Sheet">
     </div>
     <div class="settings-stat" id="cacheStats">Cache: -- hits / -- appels API</div>
     <div class="modal-btns">
@@ -262,7 +266,8 @@ const CONFIG = {
   PROXY_URL: 'https://corsproxy.io/?',
   STORE_M1_ID: 'f8ed77ef-df1b-46b8-9e7d-edb2acadc720',
   STORE_M2_ID: 'ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6',
-  WHATSAPP: '+212 XXX XXX XXX',
+  WHATSAPP: '+212 694432235',
+  SHEET_ID: '',
 };
 
 // ============================================================
@@ -291,6 +296,7 @@ window.onload = async () => {
   CONFIG.LOYVERSE_TOKEN = localStorage.getItem('cm_loyverse_token') || '';
   const savedWA = localStorage.getItem('cm_whatsapp');
   if (savedWA) CONFIG.WHATSAPP = savedWA;
+  CONFIG.SHEET_ID = localStorage.getItem('cm_client_sheet_id') || '';
 
   // Load cache stats
   cacheHits = parseInt(localStorage.getItem('cm_cache_hits') || '0');
@@ -671,6 +677,29 @@ function logConversation(userMsg, aiReply) {
     if (logs.length > 200) logs.splice(0, logs.length - 200);
     localStorage.setItem('cm_client_logs', JSON.stringify(logs));
   } catch (e) {}
+  // Also log to Google Sheet
+  logToGoogleSheet(userMsg, aiReply);
+}
+
+async function logToGoogleSheet(userMsg, aiReply) {
+  if (!CONFIG.SHEET_ID) return;
+  if (!googleToken) return;
+  try {
+    const timestamp = new Date().toISOString();
+    const url = 'https://sheets.googleapis.com/v4/spreadsheets/' + CONFIG.SHEET_ID + '/values/Sheet1!A:D:append?valueInputOption=RAW';
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + googleToken
+      },
+      body: JSON.stringify({
+        values: [[timestamp, 'client', userMsg, aiReply]]
+      })
+    });
+  } catch (e) {
+    console.warn('Sheet logging failed:', e);
+  }
 }
 
 // ============================================================
@@ -884,6 +913,7 @@ function openSettings() {
   document.getElementById('settClaudeKey').value = CONFIG.CLAUDE_API_KEY || '';
   document.getElementById('settLoyverseToken').value = CONFIG.LOYVERSE_TOKEN || '';
   document.getElementById('settWhatsapp').value = CONFIG.WHATSAPP || '';
+  document.getElementById('settSheetId').value = CONFIG.SHEET_ID || '';
   document.getElementById('cacheStats').textContent = 'Cache: ' + cacheHits + ' hits / ' + apiCalls + ' appels API';
   document.getElementById('settingsOverlay').classList.add('open');
 }
@@ -894,9 +924,11 @@ function saveSettings() {
   CONFIG.CLAUDE_API_KEY = document.getElementById('settClaudeKey').value.trim();
   CONFIG.LOYVERSE_TOKEN = document.getElementById('settLoyverseToken').value.trim();
   CONFIG.WHATSAPP = document.getElementById('settWhatsapp').value.trim();
+  CONFIG.SHEET_ID = document.getElementById('settSheetId').value.trim();
   localStorage.setItem('cm_claude_key', CONFIG.CLAUDE_API_KEY);
   localStorage.setItem('cm_loyverse_token', CONFIG.LOYVERSE_TOKEN);
   localStorage.setItem('cm_whatsapp', CONFIG.WHATSAPP);
+  localStorage.setItem('cm_client_sheet_id', CONFIG.SHEET_ID);
   closeSettings();
   // Reload catalogue with new token if set
   if (CONFIG.LOYVERSE_TOKEN) loadPublicCatalogue();
