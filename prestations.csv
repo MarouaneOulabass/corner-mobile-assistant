@@ -1,0 +1,11 @@
+id;name;price_range;duration;at_home
+1;Remplacement ecran iPhone;200-800 MAD;30-60 min;oui
+2;Remplacement ecran Samsung;200-600 MAD;30-60 min;oui
+3;Remplacement batterie;150-400 MAD;20-30 min;oui
+4;Transfert de donnees;100-200 MAD;30-60 min;oui
+5;Configuration telephone neuf;50-100 MAD;15-30 min;oui
+6;Recuperation donnees;200-500 MAD;1-3h;non
+7;Deblocage operateur;100-300 MAD;15-30 min;oui
+8;Installation film protection;50-150 MAD;10 min;oui
+9;Diagnostic complet;50 MAD;15 min;oui
+10;Nettoyage interne (poussiere);100-150 MAD;20 min;non

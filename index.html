@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080c0f">
+<meta name="description" content="Assistant vendeur interne Corner Mobile - Stock temps reel, prix par magasin, reparations">
+<meta name="robots" content="noindex, nofollow">
 <title>Corner Mobile - Assistant Vendeur</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -139,7 +141,7 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
   <div class="d-section">
     <div class="d-label">Knowledge Base locale</div>
     <div class="kb-item"><span>catalogue.json (fallback)</span><span class="kb-s" id="s-cat">...</span></div>
-    <div class="kb-item"><span>reparations.json</span><span class="kb-s" id="s-rep">...</span></div>
+    <div class="kb-item"><span>reparations.csv</span><span class="kb-s" id="s-rep">...</span></div>
     <button class="d-btn d-btn-s" onclick="loadLocalKnowledge()">Recharger fichiers locaux</button>
     <div class="d-status" id="kbStatus"></div>
   </div>
@@ -215,8 +217,28 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
 // ============================================================
 // CONFIG - Change these values or set up a Cloudflare Worker proxy
 // ============================================================
+// CSV parser helper
+function parseCSV(text, sep = ';') {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(sep).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(sep);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+    return obj;
+  });
+}
+
+// SHA-256 hash for password check
+async function hashSHA256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 const CONFIG = {
-  PASSWORD: 'corner2026',
+  // SHA-256 of 'corner2026'
+  PASSWORD_HASH: '438abe17717f5a9cfebbe58a52ec720924e0a7f9c46663b8ba9f0410f12acfbe',
   CLAUDE_API_KEY: '',
   CLAUDE_MODEL: 'claude-sonnet-4-20250514',
   LOYVERSE_TOKEN: '',
@@ -246,9 +268,10 @@ let activeStoreFilter = 'all';
 // ============================================================
 // PASSWORD
 // ============================================================
-function checkPassword() {
+async function checkPassword() {
   const pass = document.getElementById('lockPass').value;
-  if (pass === CONFIG.PASSWORD) {
+  const hash = await hashSHA256(pass);
+  if (hash === CONFIG.PASSWORD_HASH) {
     document.getElementById('lockScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('locked');
     sessionStorage.setItem('cm_auth', '1');
@@ -361,9 +384,41 @@ async function loadLocalKnowledge() {
     document.getElementById('s-cat').className = 'kb-s miss';
   }
   try {
-    const r = await fetch('reparations.json');
+    const r = await fetch('reparations.csv?t=' + Date.now());
     if (!r.ok) throw 0;
-    reparations = await r.json();
+    const rows = parseCSV(await r.text());
+    // Convert CSV rows to structured reparations object
+    reparations = { reparations: {} };
+    rows.forEach(row => {
+      const t = row.type;
+      if (!reparations.reparations[t]) {
+        reparations.reparations[t] = { label: row.label, emoji: row.emoji };
+        if (row.escalade === 'oui') {
+          reparations.reparations[t].escalade = true;
+          reparations.reparations[t].note = row.note;
+        } else if (!row.marque) {
+          reparations.reparations[t].prix_min = +row.prix_min;
+          reparations.reparations[t].prix_max = +row.prix_max;
+          reparations.reparations[t].note = row.note;
+        } else {
+          reparations.reparations[t].marques = {};
+        }
+      }
+      if (row.marque && reparations.reparations[t].marques) {
+        if (!reparations.reparations[t].marques[row.marque]) {
+          reparations.reparations[t].marques[row.marque] = [];
+        }
+        reparations.reparations[t].marques[row.marque].push({
+          groupe: row.groupe,
+          type_dalle: row.type_dalle,
+          prix_min: +row.prix_min,
+          prix_max: +row.prix_max,
+          delai_heures: row.delai,
+          escalade: row.escalade === 'oui',
+          note: row.note
+        });
+      }
+    });
     document.getElementById('s-rep').textContent = 'OK';
     document.getElementById('s-rep').className = 'kb-s ok';
     ok++;

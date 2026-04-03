@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Dashboard analyse des logs Corner Mobile - Admin">
 <title>Corner Mobile - Analyse des Logs</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -108,13 +110,31 @@ tr:hover td{background:rgba(42,168,220,0.04)}
 </div>
 
 <script>
-const PASSWORD = 'corner2026';
+const PASSWORD_HASH = '438abe17717f5a9cfebbe58a52ec720924e0a7f9c46663b8ba9f0410f12acfbe';
+
+async function hashSHA256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function parseCSV(text, sep = ';') {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(sep).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(sep);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+    return obj;
+  });
+}
 
 // ============================================================
 // AUTH
 // ============================================================
-function checkPassword() {
-  if (document.getElementById('lockPass').value === PASSWORD) {
+async function checkPassword() {
+  const hash = await hashSHA256(document.getElementById('lockPass').value);
+  if (hash === PASSWORD_HASH) {
     document.getElementById('lockScreen').classList.add('hidden');
     document.getElementById('app').classList.add('visible');
     sessionStorage.setItem('cm_analyze_auth', '1');
@@ -147,11 +167,16 @@ function loadLogs() {
 }
 
 function loadCacheEntries() {
-  // Try to infer cached patterns from the cache.json structure
-  // We'll fetch it to compare against questions
-  return fetch('cache.json?t=' + Date.now())
-    .then(r => r.ok ? r.json() : { entries: [] })
-    .then(d => d.entries || [])
+  return fetch('cache.csv?t=' + Date.now())
+    .then(r => r.ok ? r.text() : '')
+    .then(text => {
+      if (!text) return [];
+      return parseCSV(text).map(row => ({
+        q: row.id,
+        patterns: (row.patterns || '').split(',').map(p => p.trim()),
+        a: (row.reponse || '').replace(/\\n/g, '\n')
+      }));
+    })
     .catch(() => []);
 }
 
@@ -405,7 +430,7 @@ async function loadAnalysis() {
   // 1. New cache entries
   if (frequentUncached.length > 0) {
     html += `<div class="suggestion-card">
-      <h4>Nouvelles entrees pour cache.json</h4>
+      <h4>Nouvelles entrees pour cache.csv</h4>
       <p>Ces sujets reviennent souvent mais ne sont pas dans le cache. Ajouter des entrees permettrait de reduire les appels API et d'accelerer les reponses.</p>`;
     frequentUncached.slice(0, 5).forEach(([topic, questions]) => {
       const exampleQ = questions[0];
@@ -421,7 +446,7 @@ async function loadAnalysis() {
     html += `</div>`;
   } else {
     html += `<div class="suggestion-card">
-      <h4>Nouvelles entrees pour cache.json</h4>
+      <h4>Nouvelles entrees pour cache.csv</h4>
       <p>Pas assez de donnees ou toutes les questions frequentes sont deja en cache.</p>
     </div>`;
   }
@@ -463,7 +488,7 @@ async function loadAnalysis() {
   if (cacheRate < 30 && totalCacheRequests > 10) {
     html += `<div class="suggestion-card">
       <h4>Taux de cache faible (${cacheRate}%)</h4>
-      <p>Seulement ${cacheRate}% des requetes sont servies depuis le cache. Ajoutez les questions frequentes ci-dessus dans <code>cache.json</code> pour reduire les couts API et ameliorer la vitesse de reponse.</p>
+      <p>Seulement ${cacheRate}% des requetes sont servies depuis le cache. Ajoutez les questions frequentes ci-dessus dans <code>cache.csv</code> pour reduire les couts API et ameliorer la vitesse de reponse.</p>
     </div>`;
   }
 

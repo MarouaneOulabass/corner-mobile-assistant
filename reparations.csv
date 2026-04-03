@@ -1,0 +1,42 @@
+type;label;emoji;marque;groupe;type_dalle;prix_min;prix_max;delai;escalade;note
+ecran;Remplacement Ecran;📱;iPhone;iPhone SE / 6 / 6S;LCD;200;280;2-4h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 7 / 8;LCD;280;350;2-4h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone X / XS / XR;OLED;380;500;2-4h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 11;LCD;400;550;2-4h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 12 / 12 Mini;OLED;550;700;2-4h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 12 Pro / 12 Pro Max;OLED;650;800;2-4h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 13 / 13 Mini;OLED;600;750;2-4h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 13 Pro / 13 Pro Max;OLED;700;900;3-5h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 14 / 14 Plus;OLED;750;950;3-5h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 14 Pro / 14 Pro Max;OLED ProMotion;900;1100;3-5h;;
+ecran;Remplacement Ecran;📱;iPhone;iPhone 15 / 15 Plus;OLED;800;1000;3-5h;;
+ecran;Remplacement Ecran;📱;Samsung;Galaxy A14 / A24 / A34;LCD/AMOLED;280;420;2-4h;;
+ecran;Remplacement Ecran;📱;Samsung;Galaxy A54 / A73;AMOLED;400;550;2-4h;;
+ecran;Remplacement Ecran;📱;Samsung;Galaxy S22 / S23;Dynamic AMOLED;550;750;3-5h;;
+ecran;Remplacement Ecran;📱;Samsung;Galaxy S23+ / S23 Ultra;Dynamic AMOLED;700;950;3-5h;;
+ecran;Remplacement Ecran;📱;Xiaomi;Redmi Note 11 / 12;AMOLED;250;380;2-4h;;
+ecran;Remplacement Ecran;📱;Xiaomi;Redmi Note 12 Pro;AMOLED;320;450;2-4h;;
+batterie;Remplacement Batterie;🔋;iPhone;iPhone SE / 6 / 6S / 7;;150;200;1-2h;;
+batterie;Remplacement Batterie;🔋;iPhone;iPhone 8 / X / XS / XR;;180;250;1-2h;;
+batterie;Remplacement Batterie;🔋;iPhone;iPhone 11;;200;270;1-2h;;
+batterie;Remplacement Batterie;🔋;iPhone;iPhone 12 / 12 Mini;;250;320;1-2h;;
+batterie;Remplacement Batterie;🔋;iPhone;iPhone 13 / 13 Mini;;270;340;1-2h;;
+batterie;Remplacement Batterie;🔋;iPhone;iPhone 14 / 15;;300;380;1-2h;;
+batterie;Remplacement Batterie;🔋;Samsung;Galaxy A-series (A14-A54);;150;250;1-2h;;
+batterie;Remplacement Batterie;🔋;Samsung;Galaxy S22 / S23;;280;400;1-2h;;
+batterie;Remplacement Batterie;🔋;Xiaomi;Redmi Note serie;;130;220;1-2h;;
+connecteur_charge;Connecteur de Charge;🔌;iPhone;Lightning (SE-13);;150;250;1-3h;;
+connecteur_charge;Connecteur de Charge;🔌;iPhone;USB-C (14-15);;200;300;1-3h;;
+connecteur_charge;Connecteur de Charge;🔌;Samsung;Tous modeles USB-C;;150;280;1-3h;;
+connecteur_charge;Connecteur de Charge;🔌;Xiaomi;Tous modeles USB-C;;130;250;1-3h;;
+haut_parleur;Haut-parleur / Ecouteur interne;🔊;;;150;280;1-2h;;Meme fourchette toutes marques
+micro;Microphone;🎙️;;;120;220;1-2h;;Meme fourchette toutes marques
+camera;Camera;📷;iPhone;Camera arriere simple (SE-11);;300;500;2-3h;;
+camera;Camera;📷;iPhone;Camera arriere multi (12-15);;450;700;2-4h;;
+camera;Camera;📷;iPhone;Camera frontale (Face ID);;0;0;;oui;Technicien specialise - devis sur place
+camera;Camera;📷;Samsung;Camera arriere A-series;;280;450;2-3h;;
+camera;Camera;📷;Samsung;Camera arriere S-series;;400;650;2-4h;;
+vitre_arriere;Vitre Arriere;🪟;iPhone;iPhone 8 / SE2;;200;300;2-3h;;
+vitre_arriere;Vitre Arriere;🪟;iPhone;iPhone 11-15;;350;600;2-4h;;Chassis souvent solidaire
+face_id_touch_id;Face ID / Touch ID;🔐;;;;;;;;;oui;Technicien specialise - diagnostic en boutique obligatoire
+water_damage;Degat des eaux;💧;;;;;;;;;oui;Nettoyage carte mere + diagnostic - devis apres ouverture

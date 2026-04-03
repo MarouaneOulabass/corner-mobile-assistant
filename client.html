@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#FFF8F0">
+<meta name="description" content="Corner Mobile Rabat - Smartphones d'occasion, reparations, services a domicile. Discutez avec notre assistant !">
+<meta property="og:title" content="Corner Mobile - Votre assistant">
+<meta property="og:description" content="Smartphones, reparations et services a domicile a Rabat. Posez vos questions a notre assistant IA !">
+<meta property="og:type" content="website">
 <title>Corner Mobile - Votre assistant</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
@@ -255,6 +259,21 @@ select.form-input{-webkit-appearance:none;appearance:none;background-image:url("
 
 <script>
 // ============================================================
+// CSV PARSER
+// ============================================================
+function parseCSV(text, sep = ';') {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(sep).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(sep);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+    return obj;
+  });
+}
+
+// ============================================================
 // CONFIG
 // ============================================================
 const CONFIG = {
@@ -335,23 +354,75 @@ window.onload = async () => {
 // ============================================================
 async function loadCache() {
   try {
-    const r = await fetch('cache.json');
-    if (r.ok) cacheData = await r.json();
-  } catch (e) { console.warn('cache.json not loaded'); }
+    const r = await fetch('cache.csv?t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = parseCSV(await r.text());
+    cacheData = { entries: rows.map(row => ({
+      q: row.id,
+      patterns: (row.patterns || '').split(',').map(p => p.trim()),
+      a: (row.reponse || '').replace(/\\n/g, '\n')
+    }))};
+  } catch (e) { console.warn('cache.csv not loaded:', e); }
 }
 
 async function loadReparations() {
   try {
-    const r = await fetch('reparations.json');
-    if (r.ok) reparations = await r.json();
-  } catch (e) { console.warn('reparations.json not loaded'); }
+    const r = await fetch('reparations.csv?t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = parseCSV(await r.text());
+    reparations = { reparations: {} };
+    rows.forEach(row => {
+      const t = row.type;
+      if (!reparations.reparations[t]) {
+        reparations.reparations[t] = { label: row.label, emoji: row.emoji };
+        if (row.escalade === 'oui') {
+          reparations.reparations[t].escalade = true;
+          reparations.reparations[t].note = row.note;
+        } else if (!row.marque) {
+          reparations.reparations[t].prix_min = +row.prix_min;
+          reparations.reparations[t].prix_max = +row.prix_max;
+          reparations.reparations[t].note = row.note;
+        } else {
+          reparations.reparations[t].marques = {};
+        }
+      }
+      if (row.marque && reparations.reparations[t].marques) {
+        if (!reparations.reparations[t].marques[row.marque]) {
+          reparations.reparations[t].marques[row.marque] = [];
+        }
+        reparations.reparations[t].marques[row.marque].push({
+          groupe: row.groupe,
+          type_dalle: row.type_dalle,
+          prix_min: +row.prix_min,
+          prix_max: +row.prix_max,
+          delai_heures: row.delai,
+          escalade: row.escalade === 'oui',
+          note: row.note
+        });
+      }
+    });
+  } catch (e) { console.warn('reparations.csv not loaded:', e); }
 }
 
 async function loadPrestations() {
   try {
-    const r = await fetch('prestations.json');
-    if (r.ok) prestations = await r.json();
-  } catch (e) { console.warn('prestations.json not loaded'); }
+    const r = await fetch('prestations.csv?t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const rows = parseCSV(await r.text());
+    prestations = {
+      services: rows.map(row => ({
+        id: +row.id,
+        name: row.name,
+        price_range: row.price_range,
+        duration: row.duration,
+        at_home: row.at_home === 'oui'
+      })),
+      zones_couvertes: ['Rabat', 'Sale', 'Temara', 'Hay Riad', 'Agdal', 'Hassan', 'Ocean'],
+      horaires: 'Lundi-Samedi 9h-20h',
+      whatsapp: CONFIG.WHATSAPP,
+      frais_deplacement: 'Gratuit dans Rabat, 50 MAD Sale/Temara'
+    };
+  } catch (e) { console.warn('prestations.csv not loaded:', e); }
 }
 
 async function loadPublicCatalogue() {
@@ -361,7 +432,7 @@ async function loadPublicCatalogue() {
     const r = await fetch('catalogue.json?t=' + Date.now());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const cat = await r.json();
-    loyverseItems = (cat.appareils || []).filter(x => x.dispo).map(x => ({
+    loyverseItems = (cat.appareils || []).filter(x => x.dispo && x.prix > 0).map(x => ({
       item_name: x.nom,
       description: x.description || '',
       _price: x.prix,
@@ -374,7 +445,7 @@ async function loadPublicCatalogue() {
     setStatusPill('En ligne' + (updated ? ' · ' + updated : ''), 'online');
   } catch (e) {
     console.warn('catalogue.json load failed:', e);
-    setStatusPill('En ligne', 'online');
+    setStatusPill('Catalogue indisponible', 'loading');
   }
 }
 
@@ -643,6 +714,11 @@ async function checkCalendarAvailability(date, time) {
 // RDV MODAL
 // ============================================================
 function openRdvModal() {
+  // Refresh min date every time modal opens
+  const today = new Date().toISOString().split('T')[0];
+  const dateEl = document.getElementById('rdvDate');
+  dateEl.setAttribute('min', today);
+  if (!dateEl.value || dateEl.value < today) dateEl.value = today;
   document.getElementById('rdvModal').classList.add('open');
 }
 function closeRdvModal() {
