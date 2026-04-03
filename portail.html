@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Corner Mobile - Presentation & Acces</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --orange:#F97316;--amber:#F59E0B;--green:#22C55E;--blue:#2AA8DC;
+  --dark:#0B0F14;--card:#161C24;--card2:#1E2530;--border:rgba(255,255,255,0.06);
+  --text:#F1F5F9;--muted:#64748B;
+}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 80% 60% at 50% -20%, rgba(249,115,22,0.08), transparent),
+  radial-gradient(ellipse 60% 40% at 80% 80%, rgba(42,168,220,0.05), transparent);
+pointer-events:none;z-index:0}
+
+/* ===== HERO ===== */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;position:relative;z-index:1}
+.hero-logo{display:flex;align-items:center;gap:14px;margin-bottom:12px;animation:fadeDown 0.8s ease both}
+.hero-icon{width:64px;height:64px;background:linear-gradient(135deg,var(--orange),var(--amber));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 8px 32px rgba(249,115,22,0.3)}
+.hero-logo h1{font-family:'Outfit',sans-serif;font-size:clamp(32px,6vw,52px);font-weight:900;background:linear-gradient(135deg,#fff 0%,#94a3b8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-logo h1 span{background:linear-gradient(135deg,var(--orange),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:clamp(14px,2.5vw,18px);color:var(--muted);margin-bottom:40px;animation:fadeDown 0.8s 0.2s ease both;line-height:1.7;max-width:500px}
+.hero-sub strong{color:var(--text)}
+
+.scroll-hint{position:absolute;bottom:30px;animation:fadeDown 0.8s 1.5s ease both,bobble 2s 2.3s infinite}
+.scroll-hint span{display:block;width:24px;height:38px;border:2px solid var(--muted);border-radius:12px;position:relative;margin:0 auto 8px}
+.scroll-hint span::after{content:'';width:4px;height:8px;background:var(--muted);border-radius:2px;position:absolute;top:6px;left:50%;transform:translateX(-50%);animation:scrollDot 1.5s infinite}
+.scroll-hint p{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+@keyframes scrollDot{0%{opacity:1;top:6px}100%{opacity:0;top:18px}}
+@keyframes bobble{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+
+/* ===== FEATURES ANIMATION ===== */
+.features{padding:60px 20px 80px;max-width:1000px;margin:0 auto}
+.features-title{text-align:center;margin-bottom:60px}
+.features-title h2{font-family:'Outfit',sans-serif;font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:8px}
+.features-title h2 span{color:var(--orange)}
+.features-title p{color:var(--muted);font-size:14px}
+
+.feature-row{display:flex;align-items:center;gap:40px;margin-bottom:80px;opacity:0;transform:translateY(40px);transition:all 0.7s cubic-bezier(0.16,1,0.3,1)}
+.feature-row.visible{opacity:1;transform:translateY(0)}
+.feature-row:nth-child(even){flex-direction:row-reverse}
+.feature-visual{flex:1;min-width:280px}
+.feature-text{flex:1;min-width:240px}
+.feature-text .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.5px;margin-bottom:12px}
+.feature-text h3{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;margin-bottom:10px}
+.feature-text p{color:var(--muted);font-size:14px;line-height:1.8}
+.feature-text ul{list-style:none;margin-top:14px}
+.feature-text ul li{padding:6px 0;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.feature-text ul li::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* Feature cards (phone mockups) */
+.phone-mock{width:220px;height:400px;background:var(--card);border:1px solid var(--border);border-radius:28px;padding:12px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);position:relative;overflow:hidden}
+.phone-mock::before{content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);width:60px;height:5px;background:var(--card2);border-radius:5px;z-index:2}
+.phone-screen{width:100%;height:100%;border-radius:18px;overflow:hidden;position:relative}
+
+/* Client phone */
+.screen-client{background:#FFF8F0;padding:14px 10px;display:flex;flex-direction:column;gap:8px}
+.sc-header{display:flex;align-items:center;gap:6px;padding-bottom:8px;border-bottom:1px solid #F3E8DE}
+.sc-logo{width:24px;height:24px;background:linear-gradient(135deg,var(--orange),var(--amber));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.sc-title{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#1F2937}
+.sc-title em{color:var(--orange);font-style:normal}
+.sc-msg{padding:8px 10px;border-radius:12px;font-size:10px;line-height:1.5;max-width:85%;animation:msgPop 0.4s ease both}
+.sc-msg.bot{background:#fff;border:1px solid #F3E8DE;color:#1F2937;align-self:flex-start}
+.sc-msg.user{background:var(--orange);color:#fff;align-self:flex-end;border-radius:12px 12px 4px 12px}
+.sc-msg.bot .price{color:var(--orange);font-weight:700}
+.sc-input{margin-top:auto;display:flex;gap:4px}
+.sc-input div{flex:1;background:#F3E8DE;border-radius:8px;padding:6px 8px;font-size:9px;color:#9CA3AF}
+.sc-input span{width:28px;height:28px;background:var(--orange);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
+@keyframes msgPop{from{opacity:0;transform:scale(0.8) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* Vendor phone */
+.screen-vendor{background:var(--dark);padding:14px 10px;display:flex;flex-direction:column;gap:8px}
+.sv-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid rgba(42,168,220,0.12)}
+.sv-logo{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700}
+.sv-logo .c1{color:var(--blue)}.sv-logo .c2{color:var(--green)}
+.sv-badge{font-size:8px;background:rgba(91,191,62,0.15);color:var(--green);padding:2px 6px;border-radius:8px}
+.sv-msg{padding:7px 9px;border-radius:10px;font-size:9px;line-height:1.5;max-width:88%;animation:msgPop 0.4s ease both}
+.sv-msg.bot{background:var(--card2);border:1px solid rgba(42,168,220,0.12);color:#c8e8f5;align-self:flex-start}
+.sv-msg.user{background:rgba(42,168,220,0.13);border:1px solid rgba(42,168,220,0.28);color:#c8e8f5;align-self:flex-end;border-radius:10px 10px 4px 10px}
+.sv-msg .hl{color:var(--blue);font-weight:600}
+
+/* Analytics phone */
+.screen-analytics{background:var(--dark);padding:14px 10px;display:flex;flex-direction:column;gap:10px}
+.sa-header{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:var(--blue);padding-bottom:6px;border-bottom:1px solid rgba(42,168,220,0.12)}
+.sa-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sa-stat{background:var(--card2);border:1px solid rgba(42,168,220,0.08);border-radius:8px;padding:8px;text-align:center}
+.sa-stat .num{font-size:18px;font-weight:700;color:var(--blue)}
+.sa-stat .num.green{color:var(--green)}
+.sa-stat .num.red{color:#DC3C2A}
+.sa-stat .lbl{font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.sa-bar{display:flex;align-items:center;gap:6px;font-size:8px;color:var(--muted)}
+.sa-bar-fill{height:6px;border-radius:3px;flex:1;background:var(--card2);overflow:hidden}
+.sa-bar-fill div{height:100%;border-radius:3px;animation:barGrow 1s ease both}
+@keyframes barGrow{from{width:0}to{width:100%}}
+
+/* Delayed animations for phone screens */
+.phone-mock .d1{animation-delay:0.3s}
+.phone-mock .d2{animation-delay:0.7s}
+.phone-mock .d3{animation-delay:1.1s}
+.phone-mock .d4{animation-delay:1.5s}
+.phone-mock .d5{animation-delay:1.9s}
+
+/* ===== ACCESS CARDS ===== */
+.access{padding:60px 20px 100px;max-width:900px;margin:0 auto}
+.access-title{text-align:center;margin-bottom:40px}
+.access-title h2{font-family:'Outfit',sans-serif;font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:8px}
+.access-title h2 span{color:var(--orange)}
+.access-title p{color:var(--muted);font-size:14px}
+.access-password{text-align:center;margin-bottom:32px;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:12px;display:inline-flex;align-items:center;gap:10px;margin-left:auto;margin-right:auto;width:fit-content}
+.access-password-wrap{text-align:center;margin-bottom:32px}
+.access-password span{font-size:12px;color:var(--muted)}
+.access-password code{background:rgba(249,115,22,0.1);color:var(--orange);padding:4px 12px;border-radius:6px;font-size:14px;font-weight:600;letter-spacing:1px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px;transition:all 0.3s ease;cursor:pointer;text-decoration:none;color:var(--text);display:flex;flex-direction:column;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.3s}
+.card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,0.12)}
+.card:hover::before{opacity:1}
+.card-client::before{background:linear-gradient(135deg,rgba(249,115,22,0.05),transparent)}
+.card-client:hover{border-color:rgba(249,115,22,0.3)}
+.card-vendor::before{background:linear-gradient(135deg,rgba(42,168,220,0.05),transparent)}
+.card-vendor:hover{border-color:rgba(42,168,220,0.3)}
+.card-admin::before{background:linear-gradient(135deg,rgba(91,191,62,0.05),transparent)}
+.card-admin:hover{border-color:rgba(91,191,62,0.3)}
+.card-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px;position:relative;z-index:1}
+.card-client .card-icon{background:linear-gradient(135deg,var(--orange),var(--amber))}
+.card-vendor .card-icon{background:linear-gradient(135deg,var(--blue),#1a8ab8)}
+.card-admin .card-icon{background:linear-gradient(135deg,var(--green),#16a34a)}
+.card h3{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px;position:relative;z-index:1}
+.card p{font-size:13px;color:var(--muted);line-height:1.7;flex:1;position:relative;z-index:1}
+.card-arrow{margin-top:16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;position:relative;z-index:1;transition:gap 0.3s}
+.card-client .card-arrow{color:var(--orange)}
+.card-vendor .card-arrow{color:var(--blue)}
+.card-admin .card-arrow{color:var(--green)}
+.card:hover .card-arrow{gap:10px}
+
+/* ===== TECH STACK ===== */
+.stack{padding:40px 20px 80px;max-width:800px;margin:0 auto;text-align:center}
+.stack h2{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;margin-bottom:24px;color:var(--muted)}
+.stack-items{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.stack-item{padding:8px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.stack-item span{font-size:16px}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:700px){
+  .feature-row,.feature-row:nth-child(even){flex-direction:column;text-align:center}
+  .feature-text ul{display:inline-block;text-align:left}
+  .phone-mock{width:180px;height:330px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-logo">
+    <div class="hero-icon">📱</div>
+    <h1><span>Corner</span> Mobile</h1>
+  </div>
+  <p class="hero-sub">
+    <strong>Plateforme IA</strong> pour la gestion de votre boutique.<br>
+    3 interfaces. Stock temps reel. Assistant intelligent.
+  </p>
+
+  <div class="scroll-hint">
+    <span></span>
+    <p>Decouvrir</p>
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section class="features" id="features">
+  <div class="features-title">
+    <h2>Comment ca <span>marche</span> ?</h2>
+    <p>3 outils qui travaillent ensemble pour booster vos ventes</p>
+  </div>
+
+  <!-- Feature 1: Client Bot -->
+  <div class="feature-row" id="f1">
+    <div class="feature-visual">
+      <div class="phone-mock">
+        <div class="phone-screen screen-client">
+          <div class="sc-header">
+            <div class="sc-logo">📱</div>
+            <div class="sc-title"><em>Corner</em> Mobile</div>
+          </div>
+          <div class="sc-msg bot d1">Salam ! 👋 Bienvenue chez Corner Mobile ! Comment je peux vous aider ?</div>
+          <div class="sc-msg user d2">Chhal iPhone 14 ?</div>
+          <div class="sc-msg bot d3">iPhone 14 128Go, on l'a a <span class="price">3800 MAD</span> ! 📱 Camera incroyable. Passez nous voir !</div>
+          <div class="sc-msg user d4">Vous faites les reparations ?</div>
+          <div class="sc-msg bot d5">Bien sur ! Ecran iPhone 14 : <span class="price">750-950 MAD</span>, diagnostic gratuit ✅ On se deplace aussi chez vous 🏠</div>
+          <div class="sc-input">
+            <div>Posez votre question...</div>
+            <span>&#10148;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <div class="badge" style="background:rgba(249,115,22,0.1);color:var(--orange)">Interface Client</div>
+      <h3>Un vendeur IA qui ne dort jamais</h3>
+      <p>Vos clients discutent en francais, darija ou arabe. L'assistant connait votre stock en temps reel, vos prix, et propose des reparations + services a domicile.</p>
+      <ul>
+        <li style="--c:var(--orange)"><span style="background:var(--orange)" class="li-dot"></span> Repond 24/7 sur WhatsApp ou le site</li>
+        <li><span style="background:var(--orange)" class="li-dot"></span> Connait le stock de vos 2 magasins</li>
+        <li><span style="background:var(--orange)" class="li-dot"></span> Propose les reparations avec prix</li>
+        <li><span style="background:var(--orange)" class="li-dot"></span> Prise de RDV a domicile integree</li>
+        <li><span style="background:var(--orange)" class="li-dot"></span> Multilingue : FR / Darija / AR / EN</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Feature 2: Vendor Bot -->
+  <div class="feature-row" id="f2">
+    <div class="feature-visual">
+      <div class="phone-mock">
+        <div class="phone-screen screen-vendor">
+          <div class="sv-header">
+            <div class="sv-logo"><span class="c1">Corner</span><span class="c2">Mobile</span> <span style="font-size:8px;color:#4a6070">vendeur</span></div>
+            <div class="sv-badge">99 articles</div>
+          </div>
+          <div class="sv-msg user d1">Budget 3000 MAD</div>
+          <div class="sv-msg bot d2">
+            Top 3 pour <span class="hl">3000 MAD</span> :<br>
+            Samsung S22 - <span class="hl">2600</span><br>
+            Xiaomi 14T Pro - <span class="hl">3000</span><br>
+            iPhone 12 Pro Max - <span class="hl">3700</span>
+          </div>
+          <div class="sv-msg user d3">Ecran iPhone 13 ?</div>
+          <div class="sv-msg bot d4">
+            Ecran iPhone 13 : <span class="hl">600-750 MAD</span><br>
+            OLED | 2-4h | Diag gratuit
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <div class="badge" style="background:rgba(42,168,220,0.1);color:var(--blue)">Interface Vendeur</div>
+      <h3>Le copilote de vos vendeurs</h3>
+      <p>En boutique, le vendeur consulte le stock en un clic. Prix par magasin, marges, alternatives — tout est la pour closer la vente en quelques secondes.</p>
+      <ul>
+        <li><span style="background:var(--blue)" class="li-dot"></span> Stock M1 + M2 en temps reel</li>
+        <li><span style="background:var(--blue)" class="li-dot"></span> Prix d'achat et marges visibles</li>
+        <li><span style="background:var(--blue)" class="li-dot"></span> Filtrage par magasin</li>
+        <li><span style="background:var(--blue)" class="li-dot"></span> Suggestions alternatives auto</li>
+        <li><span style="background:var(--blue)" class="li-dot"></span> Commande vocale</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Feature 3: Analytics -->
+  <div class="feature-row" id="f3">
+    <div class="feature-visual">
+      <div class="phone-mock">
+        <div class="phone-screen screen-analytics">
+          <div class="sa-header">Analyse des conversations</div>
+          <div class="sa-stats">
+            <div class="sa-stat"><div class="num">847</div><div class="lbl">Conversations</div></div>
+            <div class="sa-stat"><div class="num green">72%</div><div class="lbl">Taux cache</div></div>
+            <div class="sa-stat"><div class="num">15</div><div class="lbl">Sujets</div></div>
+            <div class="sa-stat"><div class="num red">3</div><div class="lbl">Echecs</div></div>
+          </div>
+          <div style="margin-top:8px">
+            <div class="sa-bar"><span style="width:50px">iPhone</span><div class="sa-bar-fill"><div style="width:78%;background:var(--blue)"></div></div><span>78%</span></div>
+            <div class="sa-bar" style="margin-top:4px"><span style="width:50px">Prix</span><div class="sa-bar-fill"><div style="width:65%;background:var(--orange);animation-delay:0.3s"></div></div><span>65%</span></div>
+            <div class="sa-bar" style="margin-top:4px"><span style="width:50px">Reparat.</span><div class="sa-bar-fill"><div style="width:42%;background:var(--green);animation-delay:0.6s"></div></div><span>42%</span></div>
+          </div>
+          <div style="margin-top:10px;font-size:8px;color:var(--green);background:rgba(91,191,62,0.08);padding:6px 8px;border-radius:6px;border:1px solid rgba(91,191,62,0.15)">
+            Suggestion : ajouter 5 entrees cache.csv pour reduire les appels API de 30%
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="feature-text">
+      <div class="badge" style="background:rgba(91,191,62,0.1);color:var(--green)">Dashboard Admin</div>
+      <h3>Comprenez vos clients</h3>
+      <p>Analysez toutes les conversations : sujets les plus demandes, questions sans reponse, produits manquants. Le dashboard vous dit exactement quoi ameliorer.</p>
+      <ul>
+        <li><span style="background:var(--green)" class="li-dot"></span> Analyse auto des conversations</li>
+        <li><span style="background:var(--green)" class="li-dot"></span> Detection des echecs et blocages</li>
+        <li><span style="background:var(--green)" class="li-dot"></span> Suggestions d'amelioration</li>
+        <li><span style="background:var(--green)" class="li-dot"></span> Export CSV des logs</li>
+        <li><span style="background:var(--green)" class="li-dot"></span> Produits demandes non en stock</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ACCESS PORTAL ===== -->
+<section class="access" id="access">
+  <div class="access-title">
+    <h2>Tester les <span>interfaces</span></h2>
+    <p>Cliquez sur une carte pour acceder a l'interface</p>
+  </div>
+  <div class="access-password-wrap">
+    <div class="access-password">
+      <span>Mot de passe :</span>
+      <code>corner2026</code>
+    </div>
+  </div>
+  <div class="cards">
+    <a class="card card-client" href="client.html" target="_blank">
+      <div class="card-icon">💬</div>
+      <h3>Chatbot Client</h3>
+      <p>L'interface que vos clients voient. Posez des questions sur les telephones, reparations, services a domicile.</p>
+      <div class="card-arrow">Ouvrir le chatbot <span>&#8594;</span></div>
+    </a>
+    <a class="card card-vendor" href="index.html" target="_blank">
+      <div class="card-icon">🏪</div>
+      <h3>Assistant Vendeur</h3>
+      <p>L'outil interne pour vos vendeurs en boutique. Stock temps reel, prix par magasin, marges.</p>
+      <div class="card-arrow">Ouvrir l'assistant <span>&#8594;</span></div>
+    </a>
+    <a class="card card-admin" href="analyze.html" target="_blank">
+      <div class="card-icon">📊</div>
+      <h3>Dashboard Admin</h3>
+      <p>Analysez les conversations, detectez les tendances et optimisez votre assistant.</p>
+      <div class="card-arrow">Ouvrir le dashboard <span>&#8594;</span></div>
+    </a>
+  </div>
+</section>
+
+<!-- ===== TECH STACK ===== -->
+<section class="stack">
+  <h2>Sous le capot</h2>
+  <div class="stack-items">
+    <div class="stack-item"><span>🤖</span> Claude AI (Anthropic)</div>
+    <div class="stack-item"><span>📦</span> Loyverse (Stock)</div>
+    <div class="stack-item"><span>📅</span> Google Calendar</div>
+    <div class="stack-item"><span>📊</span> Google Sheets</div>
+    <div class="stack-item"><span>🚀</span> GitHub Pages</div>
+    <div class="stack-item"><span>🔄</span> Sync auto 30min</div>
+    <div class="stack-item"><span>🌍</span> Multilingue FR/AR</div>
+    <div class="stack-item"><span>📱</span> Mobile-first</div>
+  </div>
+</section>
+
+<script>
+// Scroll-triggered animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.feature-row').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
