@@ -468,23 +468,27 @@ async function loadPrestations() {
 async function loadPublicCatalogue() {
   setStatusPill('Chargement...', 'loading');
   try {
-    // Load from catalogue.json (auto-updated every 30min by GitHub Actions from Loyverse)
-    const r = await fetch('catalogue.json?t=' + Date.now());
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const cat = await r.json();
-    loyverseItems = (cat.appareils || []).filter(x => x.dispo && x.prix > 0).map(x => ({
-      item_name: x.nom,
-      description: x.description || '',
-      _price: x.prix,
-      _price_m1: x.prix_m1,
-      _price_m2: x.prix_m2,
-      _stock_m1: x.stock_m1,
-      _stock_m2: x.stock_m2
+    let items = [];
+    const stored = localStorage.getItem('cm_stock');
+    if (stored) {
+      items = JSON.parse(stored).filter(x => x.actif === 'oui' && (+x.prix_vente > 0) && ((+x.stock_m1 || 0) + (+x.stock_m2 || 0) > 0));
+    } else {
+      const r = await fetch('stock.csv?t=' + Date.now());
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      items = parseCSV(await r.text()).filter(x => x.actif === 'oui' && (+x.prix_vente > 0) && ((+x.stock_m1 || 0) + (+x.stock_m2 || 0) > 0));
+    }
+    loyverseItems = items.map(x => ({
+      item_name: x.marque + ' ' + x.modele + ' ' + x.stockage + (x.etat !== 'Neuf' ? ' - ' + x.etat + ' ' + x.batterie + '%' : ' - Neuf'),
+      description: x.couleur,
+      _price: +x.prix_vente || 0,
+      _price_m1: +x.prix_vente || 0,
+      _price_m2: +x.prix_vente || 0,
+      _stock_m1: +x.stock_m1 || 0,
+      _stock_m2: +x.stock_m2 || 0
     }));
-    const updated = cat.updated ? new Date(cat.updated).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '';
-    setStatusPill('En ligne' + (updated ? ' · ' + updated : ''), 'online');
+    setStatusPill('En ligne · ' + loyverseItems.length + ' produits', 'online');
   } catch (e) {
-    console.warn('catalogue.json load failed:', e);
+    console.warn('Stock load failed:', e);
     setStatusPill('Catalogue indisponible', 'loading');
   }
 }

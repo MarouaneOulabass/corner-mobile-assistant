@@ -316,38 +316,41 @@ async function loadLoyverseStock() {
   document.getElementById('stockStatus').className = 'd-status';
 
   try {
-    // Load from catalogue.json (auto-updated every 30min by GitHub Actions from Loyverse API)
-    const r = await fetch('catalogue.json?t=' + Date.now());
-    if (!r.ok) throw new Error('catalogue.json: ' + r.status);
-    const cat = await r.json();
-    const appareils = cat.appareils || [];
+    // Load from localStorage (admin edits) or stock.csv
+    let items = [];
+    const stored = localStorage.getItem('cm_stock');
+    if (stored) {
+      items = JSON.parse(stored).filter(x => x.actif === 'oui');
+    } else {
+      const r = await fetch('stock.csv?t=' + Date.now());
+      if (!r.ok) throw new Error('stock.csv: ' + r.status);
+      items = parseCSV(await r.text()).filter(x => x.actif === 'oui');
+    }
 
-    // Convert to internal format with store details
-    loyverseItems = appareils.map(x => ({
-      item_name: x.nom,
-      description: x.description || '',
-      _price: x.prix,
-      _cost: x.cout,
-      _price_m1: x.prix_m1,
-      _price_m2: x.prix_m2,
-      _stock_m1: x.stock_m1 || 0,
-      _stock_m2: x.stock_m2 || 0,
-      _dispo: x.dispo
+    loyverseItems = items.map(x => ({
+      item_name: x.marque + ' ' + x.modele + ' ' + x.stockage + (x.etat !== 'Neuf' ? ' - ' + x.etat + ' ' + x.batterie + '%' : ' - Neuf'),
+      description: x.couleur,
+      _price: +x.prix_vente || 0,
+      _cost: +x.prix_achat || 0,
+      _price_m1: +x.prix_vente || 0,
+      _price_m2: +x.prix_vente || 0,
+      _stock_m1: +x.stock_m1 || 0,
+      _stock_m2: +x.stock_m2 || 0,
+      _dispo: (+x.stock_m1 || 0) + (+x.stock_m2 || 0) > 0
     }));
 
-    let m1Count = appareils.filter(x => x.stock_m1 > 0).length;
-    let m2Count = appareils.filter(x => x.stock_m2 > 0).length;
+    let m1Count = loyverseItems.filter(x => x._stock_m1 > 0).length;
+    let m2Count = loyverseItems.filter(x => x._stock_m2 > 0).length;
 
     document.getElementById('s-m1').textContent = m1Count + ' items';
     document.getElementById('s-m1').className = 'kb-s ok';
     document.getElementById('s-m2').textContent = m2Count + ' items';
     document.getElementById('s-m2').className = 'kb-s ok';
-    document.getElementById('s-total').textContent = appareils.length + ' total';
+    document.getElementById('s-total').textContent = loyverseItems.length + ' total';
     document.getElementById('s-total').className = 'kb-s ok';
-    document.getElementById('stockBadge').textContent = '\uD83D\uDCE6 ' + appareils.length + ' articles';
+    document.getElementById('stockBadge').textContent = '\uD83D\uDCE6 ' + loyverseItems.length + ' articles';
 
-    const updated = cat.updated ? new Date(cat.updated).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : '';
-    document.getElementById('stockStatus').textContent = 'Stock: ' + appareils.length + ' produits' + (updated ? ' (MAJ ' + updated + ')' : '');
+    document.getElementById('stockStatus').textContent = 'Stock: ' + loyverseItems.length + ' produits (source: ' + (stored ? 'admin' : 'CSV') + ')';
     document.getElementById('stockStatus').className = 'd-status ok';
     setStatus('Pret', 'ok');
   } catch (e) {
