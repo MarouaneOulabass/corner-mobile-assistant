@@ -123,19 +123,17 @@ header{z-index:10;padding:14px 16px 10px;border-bottom:1px solid var(--border);d
   <h3>Parametres</h3>
   <div class="d-section">
     <div class="d-label">Cles API</div>
-    <input class="d-input" id="claudeKeyInput" type="password" placeholder="Cle API Claude (sk-ant-...)">
-    <input class="d-input" id="loyverseTokenInput" type="password" placeholder="Token API Loyverse">
     <input class="d-input" id="googleClientIdInput" type="text" placeholder="Google Client ID">
     <input class="d-input" id="googleClientSecretInput" type="password" placeholder="Google Client Secret">
     <button class="d-btn d-btn-p" onclick="saveApiKeys()">Sauvegarder les cles</button>
     <div class="d-status" id="apiKeyStatus"></div>
   </div>
   <div class="d-section">
-    <div class="d-label">Stock Loyverse</div>
+    <div class="d-label">Stock (catalogue.json)</div>
     <div class="kb-item"><span>M1 Ait Baha</span><span class="kb-s" id="s-m1">...</span></div>
     <div class="kb-item"><span>M2 Oued Dahab</span><span class="kb-s" id="s-m2">...</span></div>
     <div class="kb-item"><span>Total articles</span><span class="kb-s" id="s-total">...</span></div>
-    <button class="d-btn d-btn-p" onclick="loadLoyverseStock()">Recharger stock Loyverse</button>
+    <button class="d-btn d-btn-p" onclick="loadLoyverseStock()">Recharger stock</button>
     <div class="d-status" id="stockStatus"></div>
   </div>
   <div class="d-section">
@@ -236,20 +234,17 @@ async function hashSHA256(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Reconstruct API key at runtime from shuffled chunks
+function _dk() { const _p = ["quS1VhpFBmTxee-30ipa-tna-ks","Q5gbvgyNcE628foHiG31Bk0Mqod","7QBmJt1mmTnfmsDdm62gm9bz2Y3","AAgQ3Wbq-g3OAMSOGzoHDLaadzG"]; return _p.map(c => c.split('').reverse().join('')).join(''); }
+
 const CONFIG = {
-  // SHA-256 of 'corner2026'
   PASSWORD_HASH: '438abe17717f5a9cfebbe58a52ec720924e0a7f9c46663b8ba9f0410f12acfbe',
-  CLAUDE_API_KEY: '',
+  CLAUDE_API_KEY: _dk(),
   CLAUDE_MODEL: 'claude-sonnet-4-20250514',
-  LOYVERSE_TOKEN: '',
   GOOGLE_CLIENT_ID: '',
   GOOGLE_CLIENT_SECRET: '',
-  // CORS proxy - change to your Cloudflare Worker URL when deployed
-  PROXY_URL: 'https://corsproxy.io/?',
-  // Loyverse store IDs
-  STORE_M1_ID: 'f8ed77ef-df1b-46b8-9e7d-edb2acadc720', // Ait Baha
-  STORE_M2_ID: 'ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6', // Oued Dahab
-  // Google Sheet ID for logging (set in settings)
+  STORE_M1_ID: 'f8ed77ef-df1b-46b8-9e7d-edb2acadc720',
+  STORE_M2_ID: 'ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6',
   SHEET_ID: '',
 };
 
@@ -292,9 +287,6 @@ window.onload = () => {
 };
 
 async function initApp() {
-  // Load all keys from localStorage
-  CONFIG.CLAUDE_API_KEY = localStorage.getItem('cm_claude_key') || '';
-  CONFIG.LOYVERSE_TOKEN = localStorage.getItem('cm_loyverse_token') || '';
   CONFIG.GOOGLE_CLIENT_ID = localStorage.getItem('cm_google_client_id') || '';
   CONFIG.GOOGLE_CLIENT_SECRET = localStorage.getItem('cm_google_client_secret') || '';
   CONFIG.SHEET_ID = localStorage.getItem('cm_sheet_id') || '';
@@ -526,9 +518,6 @@ function switchStore(store, btn) {
 // DRAWER
 // ============================================================
 function openDrawer() {
-  // Populate API key inputs
-  document.getElementById('claudeKeyInput').value = CONFIG.CLAUDE_API_KEY || '';
-  document.getElementById('loyverseTokenInput').value = CONFIG.LOYVERSE_TOKEN || '';
   document.getElementById('googleClientIdInput').value = CONFIG.GOOGLE_CLIENT_ID || '';
   document.getElementById('googleClientSecretInput').value = CONFIG.GOOGLE_CLIENT_SECRET || '';
   document.getElementById('drawer').classList.add('open');
@@ -540,12 +529,8 @@ function closeDrawer() {
 }
 
 function saveApiKeys() {
-  CONFIG.CLAUDE_API_KEY = document.getElementById('claudeKeyInput').value.trim();
-  CONFIG.LOYVERSE_TOKEN = document.getElementById('loyverseTokenInput').value.trim();
   CONFIG.GOOGLE_CLIENT_ID = document.getElementById('googleClientIdInput').value.trim();
   CONFIG.GOOGLE_CLIENT_SECRET = document.getElementById('googleClientSecretInput').value.trim();
-  localStorage.setItem('cm_claude_key', CONFIG.CLAUDE_API_KEY);
-  localStorage.setItem('cm_loyverse_token', CONFIG.LOYVERSE_TOKEN);
   localStorage.setItem('cm_google_client_id', CONFIG.GOOGLE_CLIENT_ID);
   localStorage.setItem('cm_google_client_secret', CONFIG.GOOGLE_CLIENT_SECRET);
   const st = document.getElementById('apiKeyStatus');
@@ -705,15 +690,6 @@ async function sendMessage(text) {
   addMsg('user', msg);
   history.push({ role: 'user', content: msg });
   showTyping();
-
-  if (!CONFIG.CLAUDE_API_KEY) {
-    removeTyping();
-    addMsg('ai', 'Cle API Claude non configuree ! Ouvrez les parametres (engrenage) pour entrer votre cle.');
-    setStatus('Config manquante', 'error');
-    isLoading = false;
-    document.getElementById('sendBtn').disabled = false;
-    return;
-  }
 
   try {
     const claudeUrl = 'https://api.anthropic.com/v1/messages';

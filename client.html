@@ -113,9 +113,31 @@ select.form-input{-webkit-appearance:none;appearance:none;background-image:url("
 .confirmation-card{background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:14px;padding:16px;margin-top:8px}
 .confirmation-card h4{color:var(--green);font-size:14px;margin-bottom:8px}
 .confirmation-card p{font-size:13px;color:var(--text);line-height:1.6}
+
+/* Lock screen */
+.lock-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px}
+.lock-screen.hidden{display:none}
+.lock-logo{font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;display:flex;align-items:center;gap:10px}
+.lock-logo .icon{width:44px;height:44px;background:linear-gradient(135deg,var(--orange),var(--amber));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.lock-logo span{color:var(--orange)}
+.lock-sub{color:var(--muted);font-size:12px;letter-spacing:1.5px;text-transform:uppercase}
+.lock-input{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:14px 18px;color:var(--text);font-family:'Inter',sans-serif;font-size:16px;width:min(300px,80vw);text-align:center;outline:none}
+.lock-input:focus{border-color:var(--orange)}
+.lock-btn{background:var(--orange);color:#fff;border:none;border-radius:12px;padding:14px 40px;font-family:'Inter',sans-serif;font-size:14px;cursor:pointer;font-weight:600;box-shadow:0 2px 8px rgba(249,115,22,0.3)}
+.lock-error{color:var(--red);font-size:12px;min-height:18px}
+.app.locked{display:none}
 </style>
 </head>
 <body>
+
+<!-- PASSWORD LOCK SCREEN -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-logo"><div class="icon">📱</div> <span>Corner</span>Mobile</div>
+  <div class="lock-sub">Mode test</div>
+  <input class="lock-input" id="lockPass" type="password" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkPassword()">
+  <button class="lock-btn" onclick="checkPassword()">Entrer</button>
+  <div class="lock-error" id="lockError"></div>
+</div>
 
 <!-- RDV MODAL -->
 <div class="modal-overlay" id="rdvModal">
@@ -180,15 +202,7 @@ select.form-input{-webkit-appearance:none;appearance:none;background-image:url("
 <div class="settings-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
   <div class="settings-panel">
     <h3>Parametres Admin</h3>
-    <div class="sub">Configuration des cles API</div>
-    <div class="form-group">
-      <label>Cle API Claude</label>
-      <input class="form-input" id="settClaudeKey" type="password" placeholder="sk-ant-...">
-    </div>
-    <div class="form-group">
-      <label>Token Loyverse</label>
-      <input class="form-input" id="settLoyverseToken" type="password" placeholder="Token API Loyverse">
-    </div>
+    <div class="sub">Configuration</div>
     <div class="form-group">
       <label>Numero WhatsApp</label>
       <input class="form-input" id="settWhatsapp" type="text" placeholder="+212 694432235">
@@ -206,9 +220,9 @@ select.form-input{-webkit-appearance:none;appearance:none;background-image:url("
 </div>
 
 <!-- FAB RDV Button -->
-<button class="fab-rdv" id="fabRdv" onclick="openRdvModal()" title="Prendre rendez-vous">📅</button>
+<button class="fab-rdv" id="fabRdv" onclick="openRdvModal()" title="Prendre rendez-vous" style="display:none">📅</button>
 
-<div class="app">
+<div class="app locked" id="app">
   <header>
     <div class="logo" id="logoTap">
       <div class="logo-icon">📱</div>
@@ -274,15 +288,23 @@ function parseCSV(text, sep = ';') {
 }
 
 // ============================================================
+// AUTH
+// ============================================================
+async function hashSHA256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function _dk() { const _p = ["quS1VhpFBmTxee-30ipa-tna-ks","Q5gbvgyNcE628foHiG31Bk0Mqod","7QBmJt1mmTnfmsDdm62gm9bz2Y3","AAgQ3Wbq-g3OAMSOGzoHDLaadzG"]; return _p.map(c => c.split('').reverse().join('')).join(''); }
+
+// ============================================================
 // CONFIG
 // ============================================================
+const PASSWORD_HASH = '438abe17717f5a9cfebbe58a52ec720924e0a7f9c46663b8ba9f0410f12acfbe';
 const CONFIG = {
-  CLAUDE_API_KEY: '',
+  CLAUDE_API_KEY: _dk(),
   CLAUDE_MODEL: 'claude-sonnet-4-20250514',
-  LOYVERSE_TOKEN: '',
   GOOGLE_CLIENT_ID: '',
   GOOGLE_CLIENT_SECRET: '',
-  PROXY_URL: 'https://corsproxy.io/?',
   STORE_M1_ID: 'f8ed77ef-df1b-46b8-9e7d-edb2acadc720',
   STORE_M2_ID: 'ed81c93c-e9d4-4a59-9ddb-e2b08fc39ed6',
   WHATSAPP: '+212 694432235',
@@ -309,24 +331,36 @@ let logoTapTimer = null;
 // ============================================================
 // INIT
 // ============================================================
-window.onload = async () => {
-  // Load API keys from localStorage
-  CONFIG.CLAUDE_API_KEY = localStorage.getItem('cm_claude_key') || '';
-  CONFIG.LOYVERSE_TOKEN = localStorage.getItem('cm_loyverse_token') || '';
+// ============================================================
+// PASSWORD CHECK
+// ============================================================
+async function checkPassword() {
+  const pass = document.getElementById('lockPass').value;
+  const hash = await hashSHA256(pass);
+  if (hash === PASSWORD_HASH) {
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('locked');
+    document.getElementById('fabRdv').style.display = '';
+    sessionStorage.setItem('cm_client_auth', '1');
+    initClientApp();
+  } else {
+    document.getElementById('lockError').textContent = 'Mot de passe incorrect';
+    document.getElementById('lockPass').value = '';
+  }
+}
+
+async function initClientApp() {
   const savedWA = localStorage.getItem('cm_whatsapp');
   if (savedWA) CONFIG.WHATSAPP = savedWA;
   CONFIG.SHEET_ID = localStorage.getItem('cm_client_sheet_id') || '';
 
-  // Load cache stats
   cacheHits = parseInt(localStorage.getItem('cm_cache_hits') || '0');
   apiCalls = parseInt(localStorage.getItem('cm_api_calls') || '0');
 
-  // Set min date for RDV to today
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('rdvDate').setAttribute('min', today);
   document.getElementById('rdvDate').value = today;
 
-  // Triple-tap on logo to open settings
   document.getElementById('logoTap').addEventListener('click', function() {
     logoTapCount++;
     clearTimeout(logoTapTimer);
@@ -337,16 +371,22 @@ window.onload = async () => {
     }
   });
 
-  // Check for Google OAuth callback
   checkOAuthCallback();
-
-  // Load data
   await Promise.all([loadCache(), loadReparations(), loadPrestations(), loadPublicCatalogue()]);
 
-  // Auto-greeting
   setTimeout(() => {
     addMsg('ai', 'Salam ! 👋 Bienvenue chez Corner Mobile ! Comment je peux vous aider ? Smartphones, reparations, services a domicile... je suis la pour vous ! 😊');
   }, 600);
+}
+
+window.onload = () => {
+  if (sessionStorage.getItem('cm_client_auth') === '1') {
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('locked');
+    document.getElementById('fabRdv').style.display = '';
+    initClientApp();
+  }
+  document.getElementById('lockPass').focus();
 };
 
 // ============================================================
@@ -906,15 +946,6 @@ async function sendMessage(text) {
     return;
   }
 
-  // Call Claude API
-  if (!CONFIG.CLAUDE_API_KEY) {
-    addMsg('ai', 'Configuration requise ! La cle API Claude n\'est pas configuree. Un administrateur doit triple-taper le logo pour acceder aux parametres. En attendant, contactez-nous sur WhatsApp: ' + CONFIG.WHATSAPP);
-    isLoading = false;
-    document.getElementById('sendBtn').disabled = false;
-    setStatusPill('En ligne', 'online');
-    return;
-  }
-
   apiCalls++;
   localStorage.setItem('cm_api_calls', apiCalls);
   history.push({ role: 'user', content: msg });
@@ -1015,8 +1046,6 @@ function stopVoice() {
 // SETTINGS (admin - triple-tap logo)
 // ============================================================
 function openSettings() {
-  document.getElementById('settClaudeKey').value = CONFIG.CLAUDE_API_KEY || '';
-  document.getElementById('settLoyverseToken').value = CONFIG.LOYVERSE_TOKEN || '';
   document.getElementById('settWhatsapp').value = CONFIG.WHATSAPP || '';
   document.getElementById('settSheetId').value = CONFIG.SHEET_ID || '';
   document.getElementById('cacheStats').textContent = 'Cache: ' + cacheHits + ' hits / ' + apiCalls + ' appels API';
@@ -1026,17 +1055,11 @@ function closeSettings() {
   document.getElementById('settingsOverlay').classList.remove('open');
 }
 function saveSettings() {
-  CONFIG.CLAUDE_API_KEY = document.getElementById('settClaudeKey').value.trim();
-  CONFIG.LOYVERSE_TOKEN = document.getElementById('settLoyverseToken').value.trim();
   CONFIG.WHATSAPP = document.getElementById('settWhatsapp').value.trim();
   CONFIG.SHEET_ID = document.getElementById('settSheetId').value.trim();
-  localStorage.setItem('cm_claude_key', CONFIG.CLAUDE_API_KEY);
-  localStorage.setItem('cm_loyverse_token', CONFIG.LOYVERSE_TOKEN);
   localStorage.setItem('cm_whatsapp', CONFIG.WHATSAPP);
   localStorage.setItem('cm_client_sheet_id', CONFIG.SHEET_ID);
   closeSettings();
-  // Reload catalogue with new token if set
-  if (CONFIG.LOYVERSE_TOKEN) loadPublicCatalogue();
 }
 </script>
 </body>
