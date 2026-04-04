@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Corner Mobile — POS & Business Management
 
-## Getting Started
+Application mobile-first de gestion de point de vente pour **Corner Mobile**, un réseau de magasins de réparation et revente de smartphones à Rabat, Maroc.
 
-First, run the development server:
+## Stack technique
+
+- **Frontend**: Next.js 14 (App Router) — PWA installable
+- **Backend**: Next.js API Routes
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: JWT custom avec rôles (superadmin, manager, seller)
+- **AI**: Anthropic Claude API (claude-sonnet-4-20250514)
+- **Styling**: Tailwind CSS — mobile-first, dark mode POS
+- **Tests**: Vitest
+- **Labels**: PDF via pdf-lib + bwip-js barcodes
+
+## Installation locale
 
 ```bash
+# 1. Cloner le repo
+git clone https://github.com/marouaneoulabass/corner-mobile-assistant.git
+cd corner-mobile-assistant
+
+# 2. Installer les dépendances
+npm install
+
+# 3. Configurer les variables d'environnement
+cp .env.example .env.local
+# Remplir les clés dans .env.local
+
+# 4. Lancer le serveur de développement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Configuration Supabase
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. Créer les tables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Allez dans **Supabase Dashboard > SQL Editor** et exécutez le contenu de :
+- `supabase/migrations/001_initial_schema.sql`
 
-## Learn More
+### 2. Initialiser les données
 
-To learn more about Next.js, take a look at the following resources:
+Démarrez l'app en local (`npm run dev`) puis appelez :
+```bash
+curl -X POST http://localhost:3000/api/auth/setup
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Cela crée les magasins et utilisateurs initiaux :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Email | Rôle | Mot de passe |
+|-------|------|-------------|
+| admin@cornermobile.ma | superadmin | corner2024 |
+| manager.m1@cornermobile.ma | manager M1 | corner2024 |
+| manager.m2@cornermobile.ma | manager M2 | corner2024 |
+| seller.m1@cornermobile.ma | seller M1 | corner2024 |
+| seller.m2@cornermobile.ma | seller M2 | corner2024 |
 
-## Deploy on Vercel
+## Variables d'environnement
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+NEXT_PUBLIC_SUPABASE_URL=         # URL du projet Supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=    # Clé publique Supabase
+SUPABASE_SERVICE_ROLE_KEY=        # Clé secrète Supabase
+ANTHROPIC_API_KEY=                # Clé API Anthropic Claude
+NEXTAUTH_SECRET=                  # Secret JWT (chaîne aléatoire)
+NEXT_PUBLIC_APP_URL=              # URL de l'app (http://localhost:3000)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Déploiement Vercel
+
+1. Connectez le repo GitHub à Vercel
+2. Ajoutez les variables d'environnement ci-dessus
+3. Déployez — `vercel.json` est déjà configuré
+
+## Modules
+
+| Module | Route | Description |
+|--------|-------|-------------|
+| Dashboard | `/` | Résumé quotidien, KPIs |
+| POS | `/pos` | Point de vente (dark theme) |
+| Stock | `/stock` | Inventaire, IMEI, transferts |
+| Réparations | `/repairs` | Tickets de réparation |
+| Clients | `/customers` | CRM, historique achats |
+| Rapports | `/reports` | Analytics, IA insights |
+| Menu | `/menu` | Navigation, profil, déconnexion |
+
+## Tests
+
+```bash
+npm run test        # Tests unitaires
+npm run build       # Vérification build
+npm run lint        # ESLint
+```
+
+## PWA
+
+L'application est installable sur smartphone via le navigateur (Ajouter à l'écran d'accueil). Le POS fonctionne hors ligne avec synchronisation automatique.
+
+---
+
+Corner Mobile &copy; 2024-2026
